@@ -6,17 +6,18 @@ Created on Thu Mar 29 10:13:11 2018
 """
 
 def graph_centrality(graph, kind = 'degree'):
+    import networkx as nx
     import numpy as np
     if kind == 'degree':
-        d = list(dict(G.degree).values())
+        d = list(dict(graph.degree).values())
     if kind == 'betweenness':
-        d = list(dict(nx.betweenness_centrality(G, normalized = False)).values())
+        d = list(dict(nx.betweenness_centrality(graph, k = 500, normalized = False)).values())
     n = len(d)
     d_bar = np.max(d)
     d_all = []
     for i in d:
         d_all.append(d_bar - i)
-    return(sum(d_all)/(n-2))
+    return(sum(d_all)/(n-2)) 
 #%%
     
 def check_directory(user_id, directory, kind = 'json'):
@@ -29,10 +30,28 @@ def check_directory(user_id, directory, kind = 'json'):
     return(final)
             
 #%%
+def get_simmelian_ties(graph):
+    '''
+    This function calculates the total number of Simmelian Ties as presented
+    by Krackhardt (1998).  This implementation uses the enhancements presented
+    by Dekker (2006).
+    '''
+    import networkx as nx
+    import numpy as np
+    if not graph.is_directed():
+        sys.exit('Graph is not directed')
+    union = graph.to_undirected(reciprocal = True)
+    Y = nx.to_numpy_matrix(union)
+    Y2 = np.matmul(Y, Y)
+    S = np.multiply(Y,Y2)
+    
+    return((S > 0).sum())
+#%%
     
     
 def get_user_data(api, user_id, directory):
     import progressbar
+    import random
     tweets = []
     try:
         tweets.extend(get_timeline(api, user_id, directory))
@@ -42,7 +61,7 @@ def get_user_data(api, user_id, directory):
         return([])
        
     bar = progressbar.ProgressBar()
-    for f in bar(frd):
+    for f in bar(random.sample(frd, 250)):
         try:
             tweets.extend(get_timeline(api, f, directory))
         except:
@@ -121,9 +140,9 @@ def parse_all_metrics(api, edge_df, directory=None):
     import community
     import numpy as np
     
-    
+    user_id = '1919751'
 #    G=nx.Graph()
-    G=nx.from_pandas_edgelist(edge_df, 'from', 'to', edge_attr=['type'], create_using=None)
+    G=nx.from_pandas_edgelist(edge_df, 'from', 'to', edge_attr=['type'], create_using=nx.DiGraph())
 #    G=nx.gnp_random_graph(100, 0.4, seed=None, directed=True)
     G2 = G.to_undirected()
     
@@ -137,15 +156,15 @@ def parse_all_metrics(api, edge_df, directory=None):
             "dyad_isolates": [],
             "triad_isolates": [],
             "compo_over_4": [],
-            "average_shortest_path_length": [],
+#            "average_shortest_path_length": [],
             "clustering_coefficient": [],
             "transitivity": [],
-            "network_diameter": [],
+#            "network_diameter": [],
             "reciprocity": [],
             "graph_degree_centrality": [],
             "graph_betweenness_centrality":[],
             "mean_eigen_centrality": [],
-            "mean_simmelian_ties": [],
+            "simmelian_ties": [],
             "triad_003": [],
             "triad_012": [],
             "triad_102": [],
@@ -180,14 +199,14 @@ def parse_all_metrics(api, edge_df, directory=None):
     data['triad_isolates'].append(compo_freq[3])
     data['dyad_isolates'].append(compo_freq[2])
     data['compo_over_4'].append(len([x for x in compo_sizes if x > 3]))
-    print('shortest path')
-    data['average_shortest_path_length'].append(nx.average_shortest_path_length(largest_component))
+#    print('shortest path')
+#    data['average_shortest_path_length'].append(nx.average_shortest_path_length(largest_component))
     print('clustering_coefficient')
     data['clustering_coefficient'].append(nx.average_clustering(G2))
     print('transitivity')
     data['transitivity'].append(nx.transitivity(G))
     print('diameter')
-    data['network_diameter'].append(nx.diameter(G))
+#    data['network_diameter'].append(nx.diameter(largest_component))
     print('reciprocity')
     data['reciprocity'].append(nx.reciprocity(G))
     
@@ -198,13 +217,13 @@ def parse_all_metrics(api, edge_df, directory=None):
     print('degree')
     data['graph_degree_centrality'].append(graph_centrality(G, kind = 'degree'))
     print('betweenness')
-    data['graph_betweenness_centrality'].append(graph_centrality(G, kind = 'betweenness'))
+    data['graph_betweenness_centrality'].append(graph_centrality(largest_component, kind = 'betweenness'))
     print('eigen_centrality')
     eig = list(nx.eigenvector_centrality(G).values())
     data['mean_eigen_centrality'].append(np.mean(eig))
     
-    
-    data['mean_simmelian_ties'].append(None)
+    print('simmelian')
+    data['simmelian_ties'].append(get_simmelian_ties(G))
     print('census')
     census = nx.triadic_census(G)
     
