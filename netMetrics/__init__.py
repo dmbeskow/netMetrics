@@ -270,10 +270,10 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
     
     ## run one iteration and create CSV
     data = get_user_data(api, list_of_user_ids[0], directory, random_seed = RS)
-    edge = twitter_col.get_edgelist_from_list(data, to_csv = False, index = False)
+    edge = twitter_col.get_edgelist_from_list(data, to_csv = False)
     if len(edge.index) > 3:
         metric_df = parse_all_metrics(api, edge, list_of_user_ids[0], directory)
-        metric_df.to_csv(file_prefix + 'network_features.csv')
+        metric_df.to_csv(file_prefix + 'network_features.csv', index = False)
     
     ## Loop through rest of IDs and append to CSV
     bar = progressbar.ProgressBar()
