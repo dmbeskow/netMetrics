@@ -21,6 +21,7 @@ def graph_centrality(graph, kind = 'degree'):
 #%%
     
 def check_directory(user_id, directory, kind = 'json'):
+    import os
     files = os.listdir(directory)
     final = []
     for f in files:
@@ -52,12 +53,14 @@ def get_simmelian_ties(graph):
 def get_user_data(api, user_id, directory, random_seed = None):
     import progressbar
     import random
+    import tweepy
     tweets = []
     try:
         tweets.extend(get_timeline(api, user_id, directory))
         frd = get_followers(api, user_id, directory)
-    except:
+    except tweepy.TweepError as e:
         print('Could not scrape:',user_id)
+        print(e)
         return([])
     random.seed(a=random_seed)
     bar = progressbar.ProgressBar()
@@ -318,7 +321,7 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
 #    sys.exit(-1)
 ##%%
 #import netMetrics
-#test = netMetrics.get_user_data(api, '113142532', 'cav_timelines')
+#test = get_user_data(api, '113142532', 'cav_timelines')
 #import twitter_col
 #edge = twitter_col.get_edgelist_from_list(test, to_csv = False)
 #metric_df = parse_all_metrics(api, edge, directory=None)
