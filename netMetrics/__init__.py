@@ -136,8 +136,7 @@ def parse_all_metrics(api, edge_df, user_id, directory=None):
     import pandas as pd
     import twitter_col
     import json, io, gzip, os
-    import dateutil
-    from datetime import datetime, timezone
+    import time
     import progressbar
     import networkx as nx
     from collections import Counter
