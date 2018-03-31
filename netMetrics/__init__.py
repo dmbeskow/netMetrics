@@ -104,7 +104,7 @@ def get_timeline(api, user_id, directory):
             timeline.append(tweet)
             out = json.dumps(tweet._json)
             outfile.write(out + '\n')
-            timeline.append(json.loads(tweet._json))
+            timeline.append(tweet._json)
         outfile.close()
 
         
@@ -317,8 +317,8 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
 #    print ("Can't Authenticate")
 #    sys.exit(-1)
 ##%%
-#    
-#test = get_user_data(api, '1919751', 'test')
+#import netMetrics
+#test = netMetrics.get_user_data(api, '113142532', 'cav_timelines')
 #import twitter_col
 #edge = twitter_col.get_edgelist_from_list(test, to_csv = False)
 #metric_df = parse_all_metrics(api, edge, directory=None)
