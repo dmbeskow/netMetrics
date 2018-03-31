@@ -49,7 +49,7 @@ def get_simmelian_ties(graph):
 #%%
     
     
-def get_user_data(api, user_id, directory):
+def get_user_data(api, user_id, directory, random_seed = None):
     import progressbar
     import random
     tweets = []
@@ -59,23 +59,22 @@ def get_user_data(api, user_id, directory):
     except:
         print('Could not scrape:',user_id)
         return([])
-       
+    random.seed(a=random_seed)
     bar = progressbar.ProgressBar()
-    for f in bar(random.sample(frd, 250)):
-        try:
-            tweets.extend(get_timeline(api, f, directory))
-        except:
-            continue
+    if len(frd ) > 0:
+        for f in bar(random.sample(frd, min(len(frd),250))):
+            try:
+                tweets.extend(get_timeline(api, f, directory))
+            except:
+                continue
         
     return(dedupe_twitter(tweets))
 #%%
 
 def dedupe_twitter(list_of_tweets):
-    import progressbar
     seen = {}
     final = []
-    bar = progressbar.ProgressBar()
-    for tweet in bar(list_of_tweets):
+    for tweet in list_of_tweets:
         try:
             id = tweet["id"]
             if id not in seen:
@@ -105,7 +104,9 @@ def get_timeline(api, user_id, directory):
             timeline.append(tweet)
             out = json.dumps(tweet._json)
             outfile.write(out + '\n')
+            timeline.append(json.loads(tweet._json))
         outfile.close()
+
         
     if len(timeline) > 200:
         timeline = timeline[:200]
@@ -128,7 +129,7 @@ def get_followers(api, user_id, directory):
     
 #%%
 
-def parse_all_metrics(api, edge_df, directory=None):
+def parse_all_metrics(api, edge_df, user_id, directory=None):
     import pandas as pd
     import twitter_col
     import json, io, gzip, os
@@ -140,15 +141,18 @@ def parse_all_metrics(api, edge_df, directory=None):
     import community
     import numpy as np
     
-    user_id = '1919751'
-#    G=nx.Graph()
+#    user_id = '1919751'
     G=nx.from_pandas_edgelist(edge_df, 'from', 'to', edge_attr=['type'], create_using=nx.DiGraph())
 #    G=nx.gnp_random_graph(100, 0.4, seed=None, directed=True)
     G2 = G.to_undirected()
     
     largest_component = max(nx.connected_component_subgraphs(G2), key=len)
     
+    print("Nodes in largest compo:",len(largest_component.nodes))
+    
     data = { 
+            "user_id": [],
+            "scrape_date":[],
             "num_nodes" : [],
             "num_links": [],
             "density": [],
@@ -186,6 +190,8 @@ def parse_all_metrics(api, edge_df, directory=None):
             "ego_effective_size": []
     }
     
+    data['user_id'].append(user_id)
+    data['scrape_date'].append(time.strftime('%Y%m%d-%H%M%S'))
     data['num_nodes'].append(nx.number_of_nodes(G))
     data['num_links'].append(nx.number_of_edges(G))
     data['density'].append(nx.density(G))
@@ -193,38 +199,38 @@ def parse_all_metrics(api, edge_df, directory=None):
     compo_sizes = [len(c) for c in sorted(nx.connected_components(G2), key=len, reverse=True)]
     compo_freq = Counter(compo_sizes)
     
-    print('isolates')
+#    print('isolates')
     data['isolates'].append(compo_freq[1])
-    print('triad_islolates')
+#    print('triad_islolates')
     data['triad_isolates'].append(compo_freq[3])
     data['dyad_isolates'].append(compo_freq[2])
     data['compo_over_4'].append(len([x for x in compo_sizes if x > 3]))
 #    print('shortest path')
 #    data['average_shortest_path_length'].append(nx.average_shortest_path_length(largest_component))
-    print('clustering_coefficient')
+#    print('clustering_coefficient')
     data['clustering_coefficient'].append(nx.average_clustering(G2))
-    print('transitivity')
+#    print('transitivity')
     data['transitivity'].append(nx.transitivity(G))
-    print('diameter')
+#    print('diameter')
 #    data['network_diameter'].append(nx.diameter(largest_component))
-    print('reciprocity')
+#    print('reciprocity')
     data['reciprocity'].append(nx.reciprocity(G))
     
     ef = nx.effective_size(G, nodes = [user_id])
-    print('effective_size')
+#    print('effective_size')
     data['ego_effective_size'].append(ef[user_id])
     
-    print('degree')
+#    print('degree')
     data['graph_degree_centrality'].append(graph_centrality(G, kind = 'degree'))
-    print('betweenness')
+#    print('betweenness')
     data['graph_betweenness_centrality'].append(graph_centrality(largest_component, kind = 'betweenness'))
-    print('eigen_centrality')
-    eig = list(nx.eigenvector_centrality(G).values())
+#    print('eigen_centrality')
+    eig = list(nx.eigenvector_centrality_numpy(G).values())
     data['mean_eigen_centrality'].append(np.mean(eig))
     
-    print('simmelian')
+#    print('simmelian')
     data['simmelian_ties'].append(get_simmelian_ties(G))
-    print('census')
+#    print('census')
     census = nx.triadic_census(G)
     
     data['triad_003'].append(census['003'])
@@ -246,7 +252,7 @@ def parse_all_metrics(api, edge_df, directory=None):
     
     partition = community.best_partition(G2)
     p_df = pd.DataFrame.from_dict(partition, orient = 'index')
-    print('louvaine')
+#    print('louvaine')
     data['num_louvaine_groups'].append(len(set(partition.values())))
     data['size_largest_louvaine_group'].append(p_df[0].value_counts().max())
     
@@ -255,39 +261,76 @@ def parse_all_metrics(api, edge_df, directory=None):
     
     
 #%%
-import networkx as nx
-G=nx.gnp_random_graph(100, 0.4, seed=None, directed=True)
-
-d = nx.triadic_census(H)
-
-H = nx.gnp_random_graph(4, 0.4, seed=None, directed=True)
-
-d = dict(G.degree).values()
-
-partition = community.best_partition(G.to_undirected())
-
-ef = nx.effective_size(G, nodes = [user_id])
-df = parse_all_metrics(G, user_id = 50, directory = None)
-
-#%%
-import tweepy
-import time
-import sys
-import json
-import os
-
-# Replace the API_KEY and API_SECRET with your application's key and secret.
-auth = tweepy.AppAuthHandler("***REMOVED***", "***REMOVED***")
-
-api = tweepy.API(auth, wait_on_rate_limit=True,
-				   wait_on_rate_limit_notify=True)
-
-if (not api):
-    print ("Can't Authenticate")
-    sys.exit(-1)
-#%%
+def get_metrics_listOfIDs(list_of_user_ids, api, directory, 
+                          file_prefix = 'twitter_network_metrics_',
+                          RS = None):
+    import twitter_col
+    import pandas as pd
+    import progressbar
     
-test = get_user_data(api, '1919751', 'test')
-import twitter_col
-edge = twitter_col.get_edgelist_from_list(test, to_csv = False)
-metric_df = parse_all_metrics(api, edge, directory=None)
+    ## run one iteration and create CSV
+    data = get_user_data(api, list_of_user_ids[0], directory, random_seed = RS)
+    edge = twitter_col.get_edgelist_from_list(data, to_csv = False, index = False)
+    if len(edge.index) > 3:
+        metric_df = parse_all_metrics(api, edge, list_of_user_ids[0], directory)
+        metric_df.to_csv(file_prefix + 'network_features.csv')
+    
+    ## Loop through rest of IDs and append to CSV
+    bar = progressbar.ProgressBar()
+    with open(file_prefix + 'network_features.csv', 'a') as myFile:
+        for user in bar(list_of_user_ids[1:]):
+            data = get_user_data(api, user, directory, random_seed = RS)
+            edge = twitter_col.get_edgelist_from_list(data, to_csv = False)
+            if len(edge.index) > 3:
+                metric_df = parse_all_metrics(api, edge, user, directory)
+                metric_df.to_csv(myFile, header=False, index = False)
+    
+#%%
+#import networkx as nx
+#G=nx.gnp_random_graph(100, 0.4, seed=None, directed=True)
+#
+#d = nx.triadic_census(H)
+#
+#H = nx.gnp_random_graph(4, 0.4, seed=None, directed=True)
+#
+#d = dict(G.degree).values()
+#
+#partition = community.best_partition(G.to_undirected())
+#
+#ef = nx.effective_size(G, nodes = [user_id])
+#df = parse_all_metrics(G, user_id = 50, directory = None)
+#
+##%%
+#import tweepy
+#import time
+#import sys
+#import json
+#import os
+#
+## Replace the API_KEY and API_SECRET with your application's key and secret.
+#auth = tweepy.AppAuthHandler("***REMOVED***", "***REMOVED***")
+#
+#api = tweepy.API(auth, wait_on_rate_limit=True,
+#				   wait_on_rate_limit_notify=True)
+#
+#if (not api):
+#    print ("Can't Authenticate")
+#    sys.exit(-1)
+##%%
+#    
+#test = get_user_data(api, '1919751', 'test')
+#import twitter_col
+#edge = twitter_col.get_edgelist_from_list(test, to_csv = False)
+#metric_df = parse_all_metrics(api, edge, directory=None)
+##%%
+#import pandas as pd
+#df = pd.read_csv('sn_id_lookup.csv')
+#test = df['id_str'].tolist()
+#test = test[:7]
+#
+#get_metrics_listOfIDs(test, api, 'test', 
+#                          file_prefix = 'twitter_network_metrics_',
+#                          RS = 777)
+#
+##%%
+#df2 = pd.read_csv('twitter_network_metrics_network_features.csv', dtype = str)
