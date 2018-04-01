@@ -221,9 +221,11 @@ def parse_all_metrics(api, edge_df, user_id, directory=None):
 #    print('reciprocity')
     data['reciprocity'].append(nx.reciprocity(G))
     
-    ef = nx.effective_size(G, nodes = [user_id])
-#    print('effective_size')
-    data['ego_effective_size'].append(ef[user_id])
+    if user_id in list(G.nodes):
+        ef = nx.effective_size(G, nodes = [user_id])
+        data['ego_effective_size'].append(ef[user_id])
+    else:
+        data['ego_effective_size'].append(0)
     
 #    print('degree')
     data['graph_degree_centrality'].append(graph_centrality(G, kind = 'degree'))
