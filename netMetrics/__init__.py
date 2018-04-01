@@ -11,7 +11,7 @@ def graph_centrality(graph, kind = 'degree'):
     if kind == 'degree':
         d = list(dict(graph.degree).values())
     if kind == 'betweenness':
-        d = list(dict(nx.betweenness_centrality(graph, k = 500, normalized = False)).values())
+        d = list(dict(nx.betweenness_centrality(graph, k = min(graph.number_of_nodes(),500), normalized = False)).values())
     n = len(d)
     d_bar = np.max(d)
     d_all = []
@@ -21,6 +21,9 @@ def graph_centrality(graph, kind = 'degree'):
 #%%
     
 def check_directory(user_id, directory, kind = 'json'):
+    '''
+    Check for files in directory
+    '''
     import os
     files = os.listdir(directory)
     final = []
