@@ -232,8 +232,11 @@ def parse_all_metrics(api, edge_df, user_id, directory=None):
 #    print('betweenness')
     data['graph_betweenness_centrality'].append(graph_centrality(largest_component, kind = 'betweenness'))
 #    print('eigen_centrality')
-    eig = list(nx.eigenvector_centrality_numpy(G).values())
-    data['mean_eigen_centrality'].append(np.mean(eig))
+    try:
+        eig = list(nx.eigenvector_centrality_numpy(G).values())
+        data['mean_eigen_centrality'].append(np.mean(eig))
+    except:
+        data['mean_eigen_centrality'].append(0)
     
 #    print('simmelian')
     data['simmelian_ties'].append(get_simmelian_ties(G))
