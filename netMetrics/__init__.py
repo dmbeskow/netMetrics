@@ -135,7 +135,7 @@ def get_followers(api, user_id, directory):
     
 #%%
 
-def parse_all_metrics(api, edge_df, user_id, directory=None):
+def parse_all_metrics(api, edge_df, user_id, directory=None, long = True):
     import pandas as pd
     import twitter_col
     import json, io, gzip, os
@@ -195,6 +195,10 @@ def parse_all_metrics(api, edge_df, user_id, directory=None):
             "ego_effective_size": []
     }
     
+    if long:
+        data.pop("graph_betweenness_centrality")
+        data.pop("ego_effective_size")
+    
     data['user_id'].append(user_id)
     data['scrape_date'].append(time.strftime('%Y%m%d-%H%M%S'))
     data['num_nodes'].append(nx.number_of_nodes(G))
@@ -221,16 +225,18 @@ def parse_all_metrics(api, edge_df, user_id, directory=None):
     print('reciprocity')
     data['reciprocity'].append(nx.reciprocity(G))
     print('effective size')
-    if user_id in list(G.nodes):
-        ef = nx.effective_size(G, nodes = [user_id])
-        data['ego_effective_size'].append(ef[user_id])
-    else:
-        data['ego_effective_size'].append(0)
-    
+    if long:
+        if user_id in list(G.nodes):
+            ef = nx.effective_size(G, nodes = [user_id])
+            data['ego_effective_size'].append(ef[user_id])
+        else:
+            data['ego_effective_size'].append(0)
+        
     print('degree')
     data['graph_degree_centrality'].append(graph_centrality(G, kind = 'degree'))
     print('betweenness')
-    data['graph_betweenness_centrality'].append(graph_centrality(largest_component, kind = 'betweenness'))
+    if long:
+        data['graph_betweenness_centrality'].append(graph_centrality(largest_component, kind = 'betweenness'))
     print('eigen_centrality')
     try:
         eig = list(nx.eigenvector_centrality_numpy(G).values())
