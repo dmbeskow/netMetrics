@@ -198,6 +198,7 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = True):
     if long:
         data.pop("graph_betweenness_centrality")
         data.pop("ego_effective_size")
+        data.pop("simmelian_ties")
     
     data['user_id'].append(user_id)
     data['scrape_date'].append(time.strftime('%Y%m%d-%H%M%S'))
