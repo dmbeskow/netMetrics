@@ -245,7 +245,8 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = True):
         data['mean_eigen_centrality'].append(0)
     
     print('simmelian')
-    data['simmelian_ties'].append(get_simmelian_ties(G))
+    if long:  
+        data['simmelian_ties'].append(get_simmelian_ties(G))
     print('census')
     census = nx.triadic_census(G)
     
