@@ -34,7 +34,7 @@ def check_directory(user_id, directory, kind = 'json'):
     return(final)
             
 #%%
-def get_simmelian_ties(graph):
+def get_simmelian_ties(graph, sparse = False):
     '''
     This function calculates the total number of Simmelian Ties as presented
     by Krackhardt (1998).  This implementation uses the enhancements presented
@@ -42,12 +42,21 @@ def get_simmelian_ties(graph):
     '''
     import networkx as nx
     import numpy as np
+    import scipy as sp
+    import sys
+    
     if not graph.is_directed():
         sys.exit('Graph is not directed')
     union = graph.to_undirected(reciprocal = True)
-    Y = nx.to_numpy_matrix(union)
-    Y2 = np.matmul(Y, Y)
-    S = np.multiply(Y,Y2)
+    
+    if sparse:
+        Y = nx.to_scipy_sparse_matrix(union)
+        Y2 = sp.sparse.csr_matrix.multiply(Y, Y)
+        S = sp.sparse.csr_matrix.multiply(Y,Y2)
+    else:
+        Y = nx.to_numpy_matrix(union)
+        Y2 = np.matmul(Y, Y)
+        S = np.multiply(Y,Y2)
     
     return((S > 0).sum())
 #%%
@@ -198,7 +207,7 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = True):
     if long:
         data.pop("graph_betweenness_centrality")
         data.pop("ego_effective_size")
-        data.pop("simmelian_ties")
+#        data.pop("simmelian_ties")
     
     data['user_id'].append(user_id)
     data['scrape_date'].append(time.strftime('%Y%m%d-%H%M%S'))
@@ -246,8 +255,8 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = True):
         data['mean_eigen_centrality'].append(0)
     
     print('simmelian')
-    if long:  
-        data['simmelian_ties'].append(get_simmelian_ties(G))
+#    if long:  
+    data['simmelian_ties'].append(get_simmelian_ties(G, sparse = True))
     print('census')
     census = nx.triadic_census(G)
     
