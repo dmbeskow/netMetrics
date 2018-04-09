@@ -314,6 +314,69 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
                 metric_df.to_csv(myFile, header=False, index = False)
     
 #%%
+def network_triage(file):
+    from nltk.tokenize import word_tokenize
+    from nltk.corpus import stopwords
+    import twitter_col
+    import pandas as pd
+    import progressbar
+    import networkx as nx
+    import community
+    import string
+    import nltk
+    
+    final_hash = {}
+    final_words = {}
+    
+    stop_words = stopwords.words('english')
+
+#    ukrain_stop_words = pd.read_csv('/Users/dbeskow/Dropbox/CMU/bot_classification/botApp/ukrainian-stopwords.txt',header = None)
+    ukrain_stop_words = pd.read_csv('/usr0/home/dbeskow/Dropbox/CMU/bot_classification/botApp/ukrainian-stopwords.txt',header = None)
+    stop_words.extend(ukrain_stop_words[0].tolist())
+    stop_words.extend(string.punctuation)
+    stop_words.extend(['rt', '@', '#', 'http', 'https', '!', '?', '(', ')'])
+    
+    
+    edge_df = twitter_col.get_edgelist_file(file, to_csv = False) 
+    data = twitter_col.parse_twitter_json(file, to_csv = False)
+    hashtags = twitter_col.extract_hashtags(file, to_csv = False)
+    hashtags['user'] = hashtags['user'].astype(str)
+    G=nx.from_pandas_edgelist(edge_df, 'from', 'to', edge_attr=['type','status_id', 'created_at'])
+    partition = community.best_partition(G)
+    p_df = pd.DataFrame.from_dict(partition, orient = 'index') 
+    table = p_df[0].value_counts()
+    table = table[table > table.median()]
+    groups = list(table.index)
+    bar = progressbar.ProgressBar()
+    for group in bar(groups):
+        tweets = []
+        Hash = []
+        temp = p_df[p_df[0] == group]
+        users = list(set(temp.index))
+        bar2 = progressbar.ProgressBar()
+        for u in bar2(users):
+            getTweet = data[data['id_str'] == u]
+            tweets.extend(getTweet['status_text'].tolist())
+            getHash = hashtags[hashtags['user'] == u]
+            Hash.extend(getHash['hashtag'].tolist())
+
+        tweets = list(map(lambda item: item.lower(), tweets))
+        tokenized_tweets = [word_tokenize(i) for i in tweets]
+        words = [item for sublist in tokenized_tweets for item in sublist if item not in stop_words]   
+        allWordDist = nltk.FreqDist(w.lower() for w in words) 
+        common_words = allWordDist.most_common(10) 
+        common_words = [x[0] for x in common_words]
+        
+        allWordDist = nltk.FreqDist(w.lower() for w in Hash) 
+        common_hash = allWordDist.most_common(10) 
+        common_hash = [x[0] for x in common_hash]
+        
+        final_words[group] = common_words
+        final_hash[group] = common_hash
+        
+    
+                
+#%%
 #import networkx as nx
 #G=nx.gnp_random_graph(100, 0.4, seed=None, directed=True)
 #
