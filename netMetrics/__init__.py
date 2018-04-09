@@ -235,7 +235,7 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = False):
 #    print('reciprocity')
     data['reciprocity'].append(nx.reciprocity(G))
 #    print('effective size')
-    if long:
+    if not long:
         if user_id in list(G.nodes):
             ef = nx.effective_size(G, nodes = [user_id])
             data['ego_effective_size'].append(ef[user_id])
@@ -245,7 +245,7 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = False):
 #    print('degree')
     data['graph_degree_centrality'].append(graph_centrality(G, kind = 'degree'))
 #    print('betweenness')
-    if long:
+    if not long:
         data['graph_betweenness_centrality'].append(graph_centrality(largest_component, kind = 'betweenness'))
 #    print('eigen_centrality')
     try:
