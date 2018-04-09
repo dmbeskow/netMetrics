@@ -218,9 +218,9 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = True):
     compo_sizes = [len(c) for c in sorted(nx.connected_components(G2), key=len, reverse=True)]
     compo_freq = Counter(compo_sizes)
     
-    print('isolates')
+#    print('isolates')
     data['isolates'].append(compo_freq[1])
-    print('triad_islolates')
+#    print('triad_islolates')
     data['triad_isolates'].append(compo_freq[3])
     data['dyad_isolates'].append(compo_freq[2])
     data['compo_over_4'].append(len([x for x in compo_sizes if x > 3]))
@@ -228,13 +228,13 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = True):
 #    data['average_shortest_path_length'].append(nx.average_shortest_path_length(largest_component))
 #    print('clustering_coefficient')
     data['clustering_coefficient'].append(nx.average_clustering(G2))
-    print('transitivity')
+#    print('transitivity')
     data['transitivity'].append(nx.transitivity(G))
 #    print('diameter')
 #    data['network_diameter'].append(nx.diameter(largest_component))
-    print('reciprocity')
+#    print('reciprocity')
     data['reciprocity'].append(nx.reciprocity(G))
-    print('effective size')
+#    print('effective size')
     if long:
         if user_id in list(G.nodes):
             ef = nx.effective_size(G, nodes = [user_id])
@@ -242,22 +242,22 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = True):
         else:
             data['ego_effective_size'].append(0)
         
-    print('degree')
+#    print('degree')
     data['graph_degree_centrality'].append(graph_centrality(G, kind = 'degree'))
-    print('betweenness')
+#    print('betweenness')
     if long:
         data['graph_betweenness_centrality'].append(graph_centrality(largest_component, kind = 'betweenness'))
-    print('eigen_centrality')
+#    print('eigen_centrality')
     try:
         eig = list(nx.eigenvector_centrality_numpy(G).values())
         data['mean_eigen_centrality'].append(np.mean(eig))
     except:
         data['mean_eigen_centrality'].append(0)
     
-    print('simmelian')
+#    print('simmelian')
 #    if long:  
     data['simmelian_ties'].append(get_simmelian_ties(G, sparse = True))
-    print('census')
+#    print('census')
     census = nx.triadic_census(G)
     
     data['triad_003'].append(census['003'])
@@ -279,7 +279,7 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = True):
     
     partition = community.best_partition(G2)
     p_df = pd.DataFrame.from_dict(partition, orient = 'index')
-    print('louvaine')
+#    print('louvaine')
     data['num_louvaine_groups'].append(len(set(partition.values())))
     data['size_largest_louvaine_group'].append(p_df[0].value_counts().max())
     
