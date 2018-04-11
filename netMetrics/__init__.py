@@ -51,7 +51,7 @@ def get_simmelian_ties(graph, sparse = False):
     
     if sparse:
         Y = nx.to_scipy_sparse_matrix(union)
-        Y2 = sp.sparse.csr_matrix.multiply(Y, Y)
+        Y2 = sp.sp.sparse.csr_matrix.dot(Y, Y)
         S = sp.sparse.csr_matrix.multiply(Y,Y2)
     else:
         Y = nx.to_numpy_matrix(union)
@@ -312,9 +312,10 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
             if len(edge.index) > 3:
                 metric_df = parse_all_metrics(api, edge, user, directory)
                 metric_df.to_csv(myFile, header=False, index = False)
-    
+        
+
 #%%
-def network_triage(file):
+def network_triage(file, to_csv = True):
     from nltk.tokenize import word_tokenize
     from nltk.corpus import stopwords
     import twitter_col
@@ -325,27 +326,40 @@ def network_triage(file):
     import string
     import nltk
     
-    final_hash = {}
-    final_words = {}
+    final_hash = {'hash_count': []}
+    final_words = {'tweet_count': []}
     
     stop_words = stopwords.words('english')
 
-#    ukrain_stop_words = pd.read_csv('/Users/dbeskow/Dropbox/CMU/bot_classification/botApp/ukrainian-stopwords.txt',header = None)
-    ukrain_stop_words = pd.read_csv('/usr0/home/dbeskow/Dropbox/CMU/bot_classification/botApp/ukrainian-stopwords.txt',header = None)
+    ukrain_stop_words = pd.read_csv('/Users/dbeskow/Dropbox/CMU/bot_classification/botApp/ukrainian-stopwords.txt',header = None)
+#    ukrain_stop_words = pd.read_csv('/usr0/home/dbeskow/Dropbox/CMU/bot_classification/botApp/ukrainian-stopwords.txt',header = None)
     stop_words.extend(ukrain_stop_words[0].tolist())
     stop_words.extend(string.punctuation)
-    stop_words.extend(['rt', '@', '#', 'http', 'https', '!', '?', '(', ')'])
-    
-    
+    stop_words.extend(['rt', '@', '#', 'http', 'https', '!', '?', '(', ')','`', '’','``'])
+                       
     edge_df = twitter_col.get_edgelist_file(file, to_csv = False) 
     data = twitter_col.parse_twitter_json(file, to_csv = False)
     hashtags = twitter_col.extract_hashtags(file, to_csv = False)
     hashtags['user'] = hashtags['user'].astype(str)
+                       
+    text_dict = {}
+    for key, s in data.groupby('id_str')['status_text']:
+        text_dict[key] = list(s)
+        
+    hash_dict = {}
+    for key, s in hashtags.groupby('user')['hashtag']:
+        hash_dict[key] = list(s)
+    
+    
     G=nx.from_pandas_edgelist(edge_df, 'from', 'to', edge_attr=['type','status_id', 'created_at'])
     partition = community.best_partition(G)
     p_df = pd.DataFrame.from_dict(partition, orient = 'index') 
     table = p_df[0].value_counts()
-    table = table[table > table.median()]
+    
+    myMax = min(10,len(table.index))
+    
+    table = table.nlargest(myMax)
+    
     groups = list(table.index)
     bar = progressbar.ProgressBar()
     for group in bar(groups):
@@ -354,11 +368,12 @@ def network_triage(file):
         temp = p_df[p_df[0] == group]
         users = list(set(temp.index))
         bar2 = progressbar.ProgressBar()
+        
         for u in bar2(users):
-            getTweet = data[data['id_str'] == u]
-            tweets.extend(getTweet['status_text'].tolist())
-            getHash = hashtags[hashtags['user'] == u]
-            Hash.extend(getHash['hashtag'].tolist())
+            if u in text_dict:
+                tweets.extend(text_dict[u])
+            if u in hash_dict:
+                Hash.extend(hash_dict[u])
 
         tweets = list(map(lambda item: item.lower(), tweets))
         tokenized_tweets = [word_tokenize(i) for i in tweets]
@@ -371,9 +386,27 @@ def network_triage(file):
         common_hash = allWordDist.most_common(10) 
         common_hash = [x[0] for x in common_hash]
         
+        final_words['tweet_count'].append(len(tweets))
+        final_hash['hash_count'].append(len(Hash))
+        
         final_words[group] = common_words
         final_hash[group] = common_hash
         
+    words_df = pd.DataFrame(final_words)
+    words_df = words_df.transpose()
+    words_df['group'] = words_df.index
+    pd.merge(words_df,table.to_frame('node_count'), left_index = True, right_index = True)
+    
+    hash_df = pd.DataFrame(final_hash)
+    hash_df = hash_df.transpose()
+    hash_df['group'] = hash_df.index
+    pd.merge(hash_df,table.to_frame('node_count'), left_index = True, right_index = True)
+    
+    if to_csv:
+        words_df.to_csv('wordTriage_' + file + '.csv',index = False)
+        hash_df.to_csv('hashTriage_' + file + '.csv', index = False)
+    else:
+        return(words_df, hash_df)
     
                 
 #%%
