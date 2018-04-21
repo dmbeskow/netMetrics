@@ -135,14 +135,16 @@ def get_followers(api, user_id, directory):
     files = check_directory(user_id, directory, kind = '_followers.csv')
     if len(files) > 0:
         file = files[0]
-        followers = pd.read_csv(directory + '/' + file, dtype = str)
+        followers = pd.read_csv(directory + '/' + file, dtype = str, header = None)
         followers = followers[0].tolist()
     else:
         followers = api.followers_ids(id = user_id)
+        df = pd.DataFrame({'my_ids':followers}, dtype = str)
+        df.to_csv(directory + '/' + user_id + '_followers.csv',header = None)
     return(followers)
     
     
-#%%
+#%%%
 
 def parse_all_metrics(api, edge_df, user_id, directory=None, long = False):
     import pandas as pd
