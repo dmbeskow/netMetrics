@@ -51,7 +51,7 @@ def get_simmelian_ties(graph, sparse = False):
     
     if sparse:
         Y = nx.to_scipy_sparse_matrix(union)
-        Y2 = sp.sp.sparse.csr_matrix.dot(Y, Y)
+        Y2 = sp.sparse.csr_matrix.dot(Y, Y)
         S = sp.sparse.csr_matrix.multiply(Y,Y2)
     else:
         Y = nx.to_numpy_matrix(union)
