@@ -317,7 +317,7 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
         
 
 #%%
-def network_triage(file, to_csv = True):
+def network_triage(file, to_csv = True, stopwords = 'all'):
     from nltk.tokenize import word_tokenize
     from nltk.corpus import stopwords
     import twitter_col
@@ -327,15 +327,29 @@ def network_triage(file, to_csv = True):
     import community
     import string
     import nltk
+    import json
+    import urllib.request
+
     
     final_hash = {'hash_count': []}
     final_words = {'tweet_count': []}
     
+    link = "https://raw.githubusercontent.com/dmbeskow/stop-words/master/stopwords-all.json"
+    with urllib.request.urlopen(link) as url:
+        stop_dict = json.loads(url.read().decode())
+    
     stop_words = stopwords.words('english')
 
-    ukrain_stop_words = pd.read_csv('/Users/dbeskow/Dropbox/CMU/bot_classification/botApp/ukrainian-stopwords.txt',header = None)
+#    ukrain_stop_words = pd.read_csv('/Users/dbeskow/Dropbox/CMU/bot_classification/botApp/ukrainian-stopwords.txt',header = None)
 #    ukrain_stop_words = pd.read_csv('/usr0/home/dbeskow/Dropbox/CMU/bot_classification/botApp/ukrainian-stopwords.txt',header = None)
-    stop_words.extend(ukrain_stop_words[0].tolist())
+#    stop_words.extend(ukrain_stop_words[0].tolist())
+    if stopwords == 'all':
+        for key in stop_dict:
+            stop_words.extend(stop_dict[key])
+    else:
+        for item in stopwords:
+            if item in stop_dict:
+                stop_words.extend(stop_dict[item])
     stop_words.extend(string.punctuation)
     stop_words.extend(['rt', '@', '#', 'http', 'https', '!', '?', '(', ')','`', '’','``'])
                        
