@@ -314,8 +314,20 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
             if len(edge.index) > 3:
                 metric_df = parse_all_metrics(api, edge, user, directory)
                 metric_df.to_csv(myFile, header=False, index = False)
-        
-
+#%%    
+def strip_all_entities(text):
+    import re, string
+    entity_prefixes = ['@','#']
+    for separator in  string.punctuation:
+        if separator not in entity_prefixes :
+            text = text.replace(separator,' ')
+    words = []
+    for word in text.split():
+        word = word.strip()
+        if word:
+            if word[0] not in entity_prefixes:
+                words.append(word)
+    return ' '.join(words)
 #%%
 def network_triage(file, to_csv = True, languages = 'all'):
     from nltk.tokenize import word_tokenize
@@ -393,14 +405,14 @@ def network_triage(file, to_csv = True, languages = 'all'):
                 Hash.extend(hash_dict[u])
 
         tweets = list(map(lambda item: item.lower(), tweets))
+        tweets = list(map(lambda item: strip_all_entities(item),tweets))
         tokenized_tweets = [word_tokenize(i) for i in tweets]
-#        words = [item for sublist in tokenized_tweets for item in sublist if item not in stop_words] 
+        words = [item for sublist in tokenized_tweets for item in sublist if item not in stop_words] 
         words = [item for sublist in tokenized_tweets for item in sublist]
         regex = re.compile('#(\w+)')
         words = [x for x in words if not regex.match(x)]
         regex = re.compile('@(\w+)')
         words = [x for x in words if not regex.match(x)]
-        words = [x for x in words if x not in stop_words]
         allWordDist = nltk.FreqDist(w.lower() for w in words) 
         common_words = allWordDist.most_common(10) 
         common_words = [x[0] for x in common_words]
