@@ -317,7 +317,7 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
         
 
 #%%
-def network_triage(file, to_csv = True, Stopwords = 'all'):
+def network_triage(file, to_csv = True, languages = 'all'):
     from nltk.tokenize import word_tokenize
     from nltk.corpus import stopwords
     import twitter_col
@@ -343,11 +343,11 @@ def network_triage(file, to_csv = True, Stopwords = 'all'):
 #    ukrain_stop_words = pd.read_csv('/Users/dbeskow/Dropbox/CMU/bot_classification/botApp/ukrainian-stopwords.txt',header = None)
 #    ukrain_stop_words = pd.read_csv('/usr0/home/dbeskow/Dropbox/CMU/bot_classification/botApp/ukrainian-stopwords.txt',header = None)
 #    stop_words.extend(ukrain_stop_words[0].tolist())
-    if Stopwords == 'all':
+    if languages == 'all':
         for key in stop_dict:
             stop_words.extend(stop_dict[key])
     else:
-        for item in Stopwords:
+        for item in languages:
             if item in stop_dict:
                 stop_words.extend(stop_dict[item])
     stop_words.extend(string.punctuation)
