@@ -395,9 +395,9 @@ def network_triage(file, to_csv = True, languages = 'all'):
         tweets = list(map(lambda item: item.lower(), tweets))
         tokenized_tweets = [word_tokenize(i) for i in tweets]
         words = [item for sublist in tokenized_tweets for item in sublist if item not in stop_words] 
-        regex = re.compile('\B(\#[a-zA-Z]+\b)(?!;)')
+        regex = re.compile('#(\w+)')
         words = [x for x in words if not regex.match(x)]
-        regex = re.compile('\B(\@[a-zA-Z]+\b)(?!;)')
+        regex = re.compile('@(\w+)')
         words = [x for x in words if not regex.match(x)]
         words = [item for sublist in tokenized_tweets for item in sublist if item not in stop_words]
         allWordDist = nltk.FreqDist(w.lower() for w in words) 
