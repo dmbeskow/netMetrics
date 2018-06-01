@@ -413,6 +413,7 @@ def network_triage(file, to_csv = True, languages = 'all'):
     words_df['group'] = words_df.index
     pd.merge(words_df,table.to_frame('node_count'), left_index = True, right_index = True)
     
+    print(final_hash)
     hash_df = pd.DataFrame(final_hash)
     hash_df = hash_df.transpose()
     hash_df['group'] = hash_df.index
