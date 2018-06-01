@@ -329,7 +329,7 @@ def strip_all_entities(text):
                 words.append(word)
     return ' '.join(words)
 #%%
-def network_triage(file, to_csv = True, languages = 'all'):
+def network_triage(file, to_csv = False, languages = 'all'):
     from nltk.tokenize import word_tokenize
     from nltk.corpus import stopwords
     import twitter_col
@@ -427,18 +427,29 @@ def network_triage(file, to_csv = True, languages = 'all'):
         final_words[group] = common_words
         final_hash[group] = common_hash
         
+    t_count = final_words.pop('tweet_count')
     words_df = pd.DataFrame(final_words)
     words_df = words_df.transpose()
-    words_df['group'] = words_df.index
-    pd.merge(words_df,table.to_frame('node_count'), left_index = True, right_index = True)
+    words_df =  pd.merge(words_df,table.to_frame('node_count'), left_index = True, right_index = True)
+    nc = words_df['node_count']
+    words_df = words_df.drop('node_count', axis = 1)
+    words_df.insert(0, 'node_count', nc)
+    words_df.insert(0, 'tweet_count', t_count)
+    words_df.insert(0, 'group', words_df.index)
+
     
     for key in final_hash:
         while len(final_hash[key]) < 10:
             final_hash[key].append(None)
+    h_count = final_hash.pop('hash_count')
     hash_df = pd.DataFrame(final_hash)
     hash_df = hash_df.transpose()
-    hash_df['group'] = hash_df.index
-    pd.merge(hash_df,table.to_frame('node_count'), left_index = True, right_index = True)
+    hash_df = pd.merge(hash_df,table.to_frame('node_count'), left_index = True, right_index = True)
+    nc = hash_df['node_count']
+    hash_df = hash_df.drop('node_count', axis = 1)
+    hash_df.insert(0, 'node_count', nc)
+    hash_df.insert(0, 'hash_count', h_count)
+    hash_df.insert(0, 'group', hash_df.index)
     
     if to_csv:
         words_df.to_csv('wordTriage_' + file + '.csv',index = False)
