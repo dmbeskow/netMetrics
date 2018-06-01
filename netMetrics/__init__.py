@@ -408,7 +408,7 @@ def network_triage(file, to_csv = True, languages = 'all'):
         tweets = list(map(lambda item: strip_all_entities(item),tweets))
         tokenized_tweets = [word_tokenize(i) for i in tweets]
         words = [item for sublist in tokenized_tweets for item in sublist if item not in stop_words] 
-        words = [item for sublist in tokenized_tweets for item in sublist]
+#        words = [item for sublist in tokenized_tweets for item in sublist]
         regex = re.compile('#(\w+)')
         words = [x for x in words if not regex.match(x)]
         regex = re.compile('@(\w+)')
