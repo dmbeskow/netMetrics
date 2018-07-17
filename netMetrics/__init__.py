@@ -632,13 +632,7 @@ def get_network_user_data(data):
     return(final)
     
     
-#%%
-import json, io, gzip
-tweets = []
-with io.TextIOWrapper(gzip.open('nato_bot_all_20180222.json.gz', 'r')) as infile:
-    for line in infile:
-        if line != '\n':
-            tweets.append(json.loads(line))
+
 
     
 #%%
@@ -712,36 +706,58 @@ def check_tweet(tweet):
         return(tweet)
     
 #%%
-from scipy import stats
-import numpy as np
+#from scipy import stats
+#import numpy as np
+#
+#x = np.random.normal(size = 50, loc = 30, scale = 3)
+##x = np.random.uniform(size = 24, low = 25, high = 30)
+#y = x - min(x)
+#z = y/max(y)
+#stats.kstest(z, 'uniform')
+#
+##%%
+#df2 = {'A' : ['the', 'dog', 'went', 'to'],'B': ['C','D','C','D']}
+#df2 = pd.DataFrame(df2)
+#df2.groupby(['B'])['A'].apply(lambda x: ' '.join(x)).reset_index()
+#
+##%%
+#import netMetrics
+#d = netMetrics.get_user_data(api, '59220577','netMetric_timelines2',random_seed = 775)
+##%%
+#df2 = df.groupby(['id_str'])['status_text'].apply(','.join).reset_index()
+#df2['status_text'] = df2['status_text'].str.replace('http\S+|www.\S+', '', case=False)
+#import pandas as pd
+#from sklearn.feature_extraction.text import CountVectorizer
+#from scipy.spatial.distance import squareform, pdist
+##docs = ['why hello there', 'omg hello pony', 'she went there? omg']
+#docs = df2['status_text'].tolist()
+#vec = CountVectorizer()
+#X = vec.fit_transform(docs)
+#df3 = pd.DataFrame(X.toarray(), columns=vec.get_feature_names())
+#dist = pdist(df3, metric="jaccard")
 
-x = np.random.normal(size = 50, loc = 30, scale = 3)
-#x = np.random.uniform(size = 24, low = 25, high = 30)
-y = x - min(x)
-z = y/max(y)
-stats.kstest(z, 'uniform')
+#%%
+#import json, io, gzip
+#tweets = []
+#with io.TextIOWrapper(gzip.open('nato_bot_all_20180222.json.gz', 'r')) as infile:
+#    for line in infile:
+#        if line != '\n':
+#            tweets.append(json.loads(line))
+
+
+
+
+
+
+
 
 #%%
-df2 = {'A' : ['the', 'dog', 'went', 'to'],'B': ['C','D','C','D']}
-df2 = pd.DataFrame(df2)
-df2.groupby(['B'])['A'].apply(lambda x: ' '.join(x)).reset_index()
 
-#%%
-import netMetrics
-d = netMetrics.get_user_data(api, '59220577','netMetric_timelines2',random_seed = 775)
-#%%
-df2 = df.groupby(['id_str'])['status_text'].apply(','.join).reset_index()
-df2['status_text'] = df2['status_text'].str.replace('http\S+|www.\S+', '', case=False)
-import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer
-from scipy.spatial.distance import squareform, pdist
-#docs = ['why hello there', 'omg hello pony', 'she went there? omg']
-docs = df2['status_text'].tolist()
-vec = CountVectorizer()
-X = vec.fit_transform(docs)
-df3 = pd.DataFrame(X.toarray(), columns=vec.get_feature_names())
-dist = pdist(df3, metric="jaccard")
-#%%
+
+
+
+
+
 #import networkx as nx
 #G=nx.gnp_random_graph(100, 0.4, seed=None, directed=True)
 #
