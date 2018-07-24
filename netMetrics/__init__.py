@@ -842,32 +842,32 @@ def my_adfuller(x):
     return(result[1])
 
 #%%
-import netMetrics
-d = netMetrics.get_user_data(api, '59220577','netMetric_timelines2',random_seed = 775)
-#%%
-## Jaccard similarity
-df2 = df.groupby(['id_str'])['status_text'].apply(','.join).reset_index()
-df2['status_text'] = df2['status_text'].str.replace('http\S+|www.\S+', '', case=False)
-import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer
-from scipy.spatial.distance import squareform, pdist
-#docs = ['why hello there', 'omg hello pony', 'she went there? omg']
-docs = df2['status_text'].tolist()
-vec = CountVectorizer()
-X = vec.fit_transform(docs)
-df3 = pd.DataFrame(X.toarray(), columns=vec.get_feature_names())
-df3.index = df2['id_str']
-dist = pdist(df3, metric="jaccard")
-dist2 = squareform(dist)
-
-df3.index.get_loc('59220577')
-#%%
-import json, io, gzip
-tweets = []
-with io.TextIOWrapper(gzip.open('nato_bot_all_20180222.json.gz', 'r')) as infile:
-    for line in infile:
-        if line != '\n':
-            tweets.append(json.loads(line))
+#import netMetrics
+#d = netMetrics.get_user_data(api, '59220577','netMetric_timelines2',random_seed = 775)
+##%%
+### Jaccard similarity
+#df2 = df.groupby(['id_str'])['status_text'].apply(','.join).reset_index()
+#df2['status_text'] = df2['status_text'].str.replace('http\S+|www.\S+', '', case=False)
+#import pandas as pd
+#from sklearn.feature_extraction.text import CountVectorizer
+#from scipy.spatial.distance import squareform, pdist
+##docs = ['why hello there', 'omg hello pony', 'she went there? omg']
+#docs = df2['status_text'].tolist()
+#vec = CountVectorizer()
+#X = vec.fit_transform(docs)
+#df3 = pd.DataFrame(X.toarray(), columns=vec.get_feature_names())
+#df3.index = df2['id_str']
+#dist = pdist(df3, metric="jaccard")
+#dist2 = squareform(dist)
+#
+#df3.index.get_loc('59220577')
+##%%
+#import json, io, gzip
+#tweets = []
+#with io.TextIOWrapper(gzip.open('nato_bot_all_20180222.json.gz', 'r')) as infile:
+#    for line in infile:
+#        if line != '\n':
+#            tweets.append(json.loads(line))
 
 
 
