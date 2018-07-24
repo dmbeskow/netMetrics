@@ -587,47 +587,119 @@ def network_triage_snowball(file, to_csv = False, languages = 'all'):
     else:
         return(words_df, hash_df)             
 #%%
-def get_network_user_data(data):
+def get_network_user_data(data, user_id):
     import pandas as pd
     from datetime import datetime, timezone
     import dateutil
+    import twitter_col
+    import numpy as np
+    from sklearn.feature_extraction.text import CountVectorizer
+    from scipy.spatial.distance import squareform, pdist
+    from scipy import stats
     
-    final = {'fraction_default_image' : [],
-             'median_followers' : [],
-             'median_friends' : [],
-             'number_of_languages': [],
-             'median_statuses': [],
-             'mean_age' : [],
-             'fraction_with_description' : []
+    final = {'network_fraction_default_image' : [],  #
+             'network_median_followers' : [], #
+             'network_median_friends' : [], #
+             'network_number_of_languages': [], #
+             'network_median_statuses': [], #
+             'network_mean_age' : [], #
+             'network_fraction_with_description' : [], #
+             'network_mean_num_emoji' : [],#
+             'network_mean_num_emoji_original' : [],#
+             'network_mean_mentions' : [],#
+             'network_mean_hash' : [],#
+             'network_fraction_retweets' : [],#
+             'network_mean_tweets_per_min' : [],#
+             'network_mean_tweets_per_hour' : [],#
+             'network_mean_tweets_per_day' : [],#
+             'network_mean_jaccard similarity' : [],#
+             'network_sleep_at_night' : []
              }
-    df = parse_twitter_list(data)
-    df = df.drop_duplicates(subset = ['id_str'], keep = 'first')
+    df = twitter_col.parse_twitter_list(data)
+    df['date2'] = twitter_col.convert_dates(df['status_created_at'].tolist())
+    df['hour'] = df.date2.dt.strftime('%H')
+    df.index = pd.DatetimeIndex(df.date2)
+    df['hash'] = get_num_hash(data)
+    df['mention'] = get_num_mention(data)
+    df['emoji'] = df['status_text'].apply(get_num_emoji)
     
-    final['fraction_default_image'].append(sum(df['has_default_profile'] == True)/len(df.index))
-    final['median_followers'].append(df['followers_count'].median())
-    final['median_friends'].append(df['friends_count'].median())
-    final['median_statuses'].append(df['friends_count'].median())
     
+    # Temporal data
     
-    description = []
-    age = []
+    final["network_mean_tweets_per_min"].append(df['date2'].resample('T').count().mean())
+    final["network_mean_tweets_per_hour"].append(df['date2'].resample('H').count().mean())
+    final["network_mean_tweets_per_day"].append(df['date2'].resample('D').count().mean())
+    
+    # sleep analysis 
+    # see https://machinelearningmastery.com/time-series-data-stationary-python/
+    # and http://www.statsmodels.org/dev/generated/statsmodels.tsa.stattools.adfuller.html
+    
 
-    for item in data:
-        if item != '\n':
-            t = check_tweet(item)
-            td = datetime.now(timezone.utc) - dateutil.parser.parse(t['user']['created_at'])
-            age.append(td.days)
-            desc = t['user']['description']
-            if desc == None:
-                description.append(False)
-            if desc == "":
-                description.append(False)
-            else:
-                description.append(True)
-    final['fraction_with_description'].append(sum(description)/len(df.index))
+    from statsmodels.tsa.stattools import adfuller
+    X = df['date2'].resample('H').count().as_matrix()
+    X = df.groupby('id_str')['date2'].resample('D').count()
+    y = X.apply( my_adfuller)
+    result = adfuller(X)
+    p.value = result[1]
     
-    final['mean_age'].append(sum(age)/len(age))
-    final['number_of_languages'].append(df['lang'].value_counts().count())
+    final_result = []
+    people = list(set(df['id_str'].tolist()))
+    for person in people:
+        temp = df[df['id_str'] == person]
+        if len(temp.index) > 50:
+            X = temp.groupby('id_str')['date2'].resample('D').count()
+            result = adfuller(X)
+            p_value = result[1]
+            final_result.append(p_value)
+        else:
+            final_result.append(1)
+        
+    
+    timeOfDay = df['hour'].value_counts().as_matrix()
+    y1 = timeOfDay - min(timeOfDay)
+    z1 = timeOfDay/max(y1)
+    statistic,pvalue = stats.kstest(z1, 'uniform')
+    
+    # Text data
+    final['network_mean_num_emoji'].append(df['emoji'].mean())
+    final['network_mean_num_emoji_original'].append(df[df['status_isretweet'] == False]['emoji'].mean())
+    final['network_mean_mentions'].append(df['mention'].mean())
+    final['network_mean_hash'].append(df['hash'].mean())
+    final['network_fraction_retweets'].append(sum(df['status_isretweet'] == True)/len(df.index))
+    
+    # Jaccard Similarity
+    if user_id in df['id_str'].tolist():
+        text = df.groupby(['id_str'])['status_text'].apply(','.join).reset_index()
+        text['status_text'] = text['status_text'].str.replace('http\S+|www.\S+', '', case=False)
+        docs = text['status_text'].tolist()
+        vec = CountVectorizer()
+        X = vec.fit_transform(docs)
+        text3 = pd.DataFrame(X.toarray(), columns=vec.get_feature_names())
+        text3.index = text['id_str']
+        dist = pdist(text3, metric="jaccard")
+        dist2 = squareform(dist)
+        index = text3.index.get_loc(user_id)
+        final['network_mean_jaccard similarity'].append(np.mean(dist2[index,]))
+    else:
+        final['network_mean_jaccard similarity'].append(1)
+    
+    
+    # User Data
+    df2 = df.drop_duplicates(subset = ['id_str'], keep = 'first')
+
+    df2['age'] = df['created_at'].apply(get_age)
+    
+    final['network_fraction_default_image'].append(sum(df2['has_default_profile'] == True)/len(df.index))
+    final['network_median_followers'].append(df2['followers_count'].median())
+    final['network_median_friends'].append(df2['friends_count'].median())
+    final['network_median_statuses'].append(df2['friends_count'].median())
+
+
+
+    final['network_fraction_with_description'].append(sum(df2['has_default_profile'] == True)/len(df.index))
+    
+    final['network_mean_age'].append(df2['age'].mean())
+    final['network_number_of_languages'].append(df2['lang'].value_counts().count())
     
     return(final)
     
@@ -636,113 +708,166 @@ def get_network_user_data(data):
 
     
 #%%
-def parse_twitter_list(List):
-    """
-    This parses 'tweet' json to a pandas dataFrame. 'name' should be either
-    'id_str' or 'screen_name'.  This will choose which object is selected for
-    reply and retweet id.
-    """
-    import pandas as pd
-    import json, time, io, gzip
-    import progressbar
-    import twitter_col
-
-    data = { "id_str" : [],   
-        "screen_name" : [],
-        "location" : [],
-        "description" : [],
-        "protected" : [],
-        "verified" : [],
-        "followers_count" : [],
-        "friends_count" : [],
-        "listed_count" : [],
-        "favourites_count" : [],
-        "statuses_count" : [],
-        "created_at" : [],
-       "geo_enabled" : [],
-        "lang" : [],
-        "has_default_profile" : []
-          }
-
-    bar = progressbar.ProgressBar()
-    for item in bar(List):
-        if item != '\n':
-            t = check_tweet(item)
-
-            if 'user' in t.keys():
-                data['id_str'].append(t['user']['id_str'])
-                data['screen_name'].append(t['user']['screen_name'])
-                data['location'].append(t['user']['location'])
-                data['description'].append(t['user']['description'])
-                data['protected'].append(t['user']['protected'])
-                data['verified'].append(t['user']['verified'])
-                data['followers_count'].append(t['user']['followers_count'])
-                data['friends_count'].append(t['user']['friends_count'])
-                data['listed_count'].append(t['user']['listed_count'])
-                data['favourites_count'].append(t['user']['favourites_count'])
-                data['statuses_count'].append(t['user']['statuses_count'])
-                data['created_at'].append(t['user']['created_at'])
-                data['geo_enabled'].append(t['user']['geo_enabled'])
-                data['lang'].append(t['user']['lang'])
-                if t['user']['profile_image_url'] == "http://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png":
-                    data['has_default_profile'].append(True)
-                else:
-                    data['has_default_profile'].append(False)
-                    
-    df = pd.DataFrame(data, dtype = str)
-    
-    return(df)
+#def parse_twitter_list(List):
+#    """
+#    This parses 'tweet' json to a pandas dataFrame. 'name' should be either
+#    'id_str' or 'screen_name'.  This will choose which object is selected for
+#    reply and retweet id.
+#    """
+#    import pandas as pd
+#    import json, time, io, gzip
+#    import progressbar
+#    import twitter_col
+#
+#    data = { "id_str" : [],   
+#        "screen_name" : [],
+#        "location" : [],
+#        "description" : [],
+#        "protected" : [],
+#        "verified" : [],
+#        "followers_count" : [],
+#        "friends_count" : [],
+#        "listed_count" : [],
+#        "favourites_count" : [],
+#        "statuses_count" : [],
+#        "created_at" : [],
+#        "status_created_at" : [],
+#        "description" : [],
+#        "
+#       "geo_enabled" : [],
+#        "lang" : [],
+#        "has_default_profile" : []
+#          }
+#
+#    bar = progressbar.ProgressBar()
+#    for item in bar(List):
+#        if item != '\n':
+#            t = check_tweet(item)
+#
+#            if 'user' in t.keys():
+#                data['id_str'].append(t['user']['id_str'])
+#                data['screen_name'].append(t['user']['screen_name'])
+#                data['location'].append(t['user']['location'])
+#                data['description'].append(t['user']['description'])
+#                data['protected'].append(t['user']['protected'])
+#                data['verified'].append(t['user']['verified'])
+#                data['followers_count'].append(t['user']['followers_count'])
+#                data['friends_count'].append(t['user']['friends_count'])
+#                data['listed_count'].append(t['user']['listed_count'])
+#                data['favourites_count'].append(t['user']['favourites_count'])
+#                data['statuses_count'].append(t['user']['statuses_count'])
+#                data['created_at'].append(t['user']['created_at'])
+#                data['geo_enabled'].append(t['user']['geo_enabled'])
+#                data['lang'].append(t['user']['lang'])
+#                if t['user']['profile_image_url'] == "http://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png":
+#                    data['has_default_profile'].append(True)
+#                else:
+#                    data['has_default_profile'].append(False)
+#                    
+#    df = pd.DataFrame(data, dtype = str)
+#    
+#    return(df)
 #%%
-def check_tweet(tweet):
+def check_tweet(Tweet):
     import twitter_col
-    if 'status' not in tweet.keys():
-        if 'friends_count' in tweet.keys():
-            tweet['status'] = twitter_col.get_empty_status()
-    if 'status' in tweet.keys():
-        temp = tweet['status']
-        getRid = tweet.pop('status', 'Entry not found')
+    if 'status' not in Tweet.keys():
+        if 'friends_count' in Tweet.keys():
+            Tweet['status'] = twitter_col.get_empty_status()
+    if 'status' in Tweet.keys():
+        temp = Tweet['status']
+        getRid = Tweet.pop('status', 'Entry not found')
         temp['user'] = tweet
         tweet = temp
         return(tweet)
+#%%    
+def get_num_hash(tweets):
+    """
+    Returns number of hashtags in a tweet.  If no hashtags, 
+    it returns an empty list.
     
-#%%
-#from scipy import stats
-#import numpy as np
-#
-#x = np.random.normal(size = 50, loc = 30, scale = 3)
-##x = np.random.uniform(size = 24, low = 25, high = 30)
-#y = x - min(x)
-#z = y/max(y)
-#stats.kstest(z, 'uniform')
-#
-##%%
-#df2 = {'A' : ['the', 'dog', 'went', 'to'],'B': ['C','D','C','D']}
-#df2 = pd.DataFrame(df2)
-#df2.groupby(['B'])['A'].apply(lambda x: ' '.join(x)).reset_index()
-#
-##%%
-#import netMetrics
-#d = netMetrics.get_user_data(api, '59220577','netMetric_timelines2',random_seed = 775)
-##%%
-#df2 = df.groupby(['id_str'])['status_text'].apply(','.join).reset_index()
-#df2['status_text'] = df2['status_text'].str.replace('http\S+|www.\S+', '', case=False)
-#import pandas as pd
-#from sklearn.feature_extraction.text import CountVectorizer
-#from scipy.spatial.distance import squareform, pdist
-##docs = ['why hello there', 'omg hello pony', 'she went there? omg']
-#docs = df2['status_text'].tolist()
-#vec = CountVectorizer()
-#X = vec.fit_transform(docs)
-#df3 = pd.DataFrame(X.toarray(), columns=vec.get_feature_names())
-#dist = pdist(df3, metric="jaccard")
+    """
+    final = []
+    for tweet in tweets:
+        ht = []
+        for h in tweet['entities']['hashtags']:
+                ht.append(h['text'])
+        final.append(len(ht))
+    return(final)
+
 
 #%%
-#import json, io, gzip
-#tweets = []
-#with io.TextIOWrapper(gzip.open('nato_bot_all_20180222.json.gz', 'r')) as infile:
-#    for line in infile:
-#        if line != '\n':
-#            tweets.append(json.loads(line))
+def get_num_mention(tweets):
+    """
+    Returns number of mentions in a tweet.  If no hashtags, 
+    it returns an empty list.
+    """
+    final = []
+    for tweet in tweets:
+        men = []
+        if len(tweet['entities']['user_mentions']) > 0:
+            for m in tweet['entities']['user_mentions']:
+                men.append(m['id_str'])
+        final.append(len(men))
+    return(final)
+#%%
+def get_num_emoji(string):
+    """
+   Returns number of emojis
+   
+    """
+    import emoji
+    E = [c for c in string if c in emoji.UNICODE_EMOJI]  
+    return(len(E))
+#%%
+def get_age(date):
+    from datetime import datetime, timezone
+    import dateutil
+    td = datetime.now(timezone.utc) - dateutil.parser.parse(date)
+    return(td.days)
+#%%
+from scipy import stats
+import numpy as np
+
+x = np.random.normal(size = 50, loc = 30, scale = 3)
+#x = np.random.uniform(size = 24, low = 25, high = 30)
+y = x - min(x)
+z = y/max(y)
+stats.kstest(z, 'uniform')
+
+#%%
+def my_adfuller(x):
+    from statsmodels.tsa.stattools import adfuller
+#    vector = vector.as_matrix()
+    result = adfuller(x)
+    return(result[1])
+
+#%%
+import netMetrics
+d = netMetrics.get_user_data(api, '59220577','netMetric_timelines2',random_seed = 775)
+#%%
+## Jaccard similarity
+df2 = df.groupby(['id_str'])['status_text'].apply(','.join).reset_index()
+df2['status_text'] = df2['status_text'].str.replace('http\S+|www.\S+', '', case=False)
+import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
+from scipy.spatial.distance import squareform, pdist
+#docs = ['why hello there', 'omg hello pony', 'she went there? omg']
+docs = df2['status_text'].tolist()
+vec = CountVectorizer()
+X = vec.fit_transform(docs)
+df3 = pd.DataFrame(X.toarray(), columns=vec.get_feature_names())
+df3.index = df2['id_str']
+dist = pdist(df3, metric="jaccard")
+dist2 = squareform(dist)
+
+df3.index.get_loc('59220577')
+#%%
+import json, io, gzip
+tweets = []
+with io.TextIOWrapper(gzip.open('nato_bot_all_20180222.json.gz', 'r')) as infile:
+    for line in infile:
+        if line != '\n':
+            tweets.append(json.loads(line))
 
 
 
