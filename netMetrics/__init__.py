@@ -140,7 +140,7 @@ def get_followers(api, user_id, directory):
     else:
         followers = api.followers_ids(id = user_id)
         df = pd.DataFrame({'my_ids':followers}, dtype = str)
-        df.to_csv(directory + '/' + user_id + '_followers.csv',header = None)
+        df.to_csv(directory + '/' + user_id + '_followers.csv',header = None, index = False)
     return(followers)
     
     
