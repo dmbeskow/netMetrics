@@ -644,7 +644,7 @@ def word_triage_by_language(file, to_csv = False, languages = 'all'):
     
     myMax = min(10,len(table.index))
     
-    #table = table.nlargest(myMax)
+    table = table.nlargest(myMax)
     
     groups = list(table.index)
     bar = progressbar.ProgressBar()
