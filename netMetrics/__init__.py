@@ -85,6 +85,32 @@ def get_user_data(api, user_id, directory, random_seed = None):
         
     return(dedupe_twitter(tweets))
 #%%
+    
+    
+def timeline_snowball(api, user_id, directory, random_seed = None):
+    import progressbar
+    import random
+    import tweepy
+    try:
+        get_timeline(api, user_id, directory)
+        frd = get_followers(api, user_id, directory)
+    except tweepy.TweepError as e:
+        print('Could not scrape:',user_id)
+        print(e)
+        return([])
+    random.seed(a=random_seed)
+    bar = progressbar.ProgressBar()
+    if len(frd ) > 0:
+        for f in bar(random.sample(frd, min(len(frd),250))):
+            try:
+                get_timeline(api, f, directory)
+            except:
+                continue
+        
+ 
+#%%
+    
+
 
 def dedupe_twitter(list_of_tweets):
     seen = {}
@@ -142,7 +168,19 @@ def get_followers(api, user_id, directory):
         df = pd.DataFrame({'my_ids':followers}, dtype = str)
         df.to_csv(directory + '/' + user_id + '_followers.csv',header = None, index = False)
     return(followers)
-    
+#%%
+def get_friends(api, user_id, directory):
+    import pandas as pd
+    files = check_directory(user_id, directory, kind = '_friends.csv')
+    if len(files) > 0:
+        file = files[0]
+        friends = pd.read_csv(directory + '/' + file, dtype = str, header = None)
+        friends = friends[0].tolist()
+    else:
+        friends = api.friends_ids(id = user_id)
+        df = pd.DataFrame({'my_ids':friends}, dtype = str)
+        df.to_csv(directory + '/' + user_id + '_friends.csv',header = None, index = False)
+    return(friends)   
     
 #%%%
 
