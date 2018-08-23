@@ -624,6 +624,7 @@ def word_triage_by_language(file, to_csv = False, languages = 'all'):
                        
     #edge_df = twitter_col.get_edgelist_file(file, to_csv = False) 
     data = twitter_col.parse_twitter_json(file, to_csv = False)
+    data = data[['id_str','status_text','lang']]
     hashtags = twitter_col.extract_hashtags(file, to_csv = False)
     hashtags['user'] = hashtags['user'].astype(str)
                        
