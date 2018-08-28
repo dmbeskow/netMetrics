@@ -419,8 +419,8 @@ def network_triage(file, to_csv = False, languages = 'all'):
     
     
     G=nx.from_pandas_edgelist(edge_df, 'from', 'to', edge_attr=['type','status_id', 'created_at'])
-    if None in G.nodes():
-        G.remove_node(None)
+
+#    G.remove_node(None)
     partition = community.best_partition(G)
     p_df = pd.DataFrame.from_dict(partition, orient = 'index') 
     table = p_df[0].value_counts()
