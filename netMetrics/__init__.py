@@ -405,7 +405,7 @@ def network_triage(file, to_csv = False, languages = 'all'):
     stop_words.extend(['rt', '@', '#', 'http', 'https', '!', '?', '(', ')','`', '’','``'])
                        
     edge_df = twitter_col.get_edgelist_file(file, to_csv = False, kind = 'id_str') 
-    data = twitter_col.parse_twitter_json(file, to_csv = False)
+    data = twitter_col.parse_only_text(file, to_csv = False)
     hashtags = twitter_col.extract_hashtags(file, to_csv = False)
     hashtags['user'] = hashtags['user'].astype(str)
                        
