@@ -152,7 +152,6 @@ def get_timeline(api, user_id, directory):
                     timeline.append(tweet._json)
         except tweepy.TweepError as e:
             print(e.reason)
-            continue
 
     return(timeline)
         
