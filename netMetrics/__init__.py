@@ -126,7 +126,7 @@ def dedupe_twitter(list_of_tweets):
         
     return(final)
 #%%
-def get_timeline(api, user_id, directory):
+def get_timeline(api, user_id, directory, pages = 1):
     import gzip, json, io
     import tweepy
     files = check_directory(user_id, directory, kind = '.json')
@@ -142,7 +142,7 @@ def get_timeline(api, user_id, directory):
     else:
         try:
             new_tweets = []
-            for page in tweepy.Cursor(api.user_timeline, id=i, count = 200,tweet_mode="extended").pages(1):
+            for page in tweepy.Cursor(api.user_timeline, id=user_id, count = 200,tweet_mode="extended").pages(pages):
                 new_tweets.extend(page)
     #        new_tweets = api.user_timeline(id = user_id,count=200)
             with gzip.open(directory + '/' + str(user_id) + '.json.gz', 'wt') as outfile:
