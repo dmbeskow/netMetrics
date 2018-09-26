@@ -139,18 +139,21 @@ def get_timeline(api, user_id, directory):
         for line in infile:
             timeline.append(json.loads(line))
     else:
-        new_tweets = api.user_timeline(id = user_id,count=200)
-        outfile = gzip.open(directory + '/' + str(user_id) + '.json.gz', 'wt')
-        for tweet in new_tweets:
-            timeline.append(tweet)
-            out = json.dumps(tweet._json)
-            outfile.write(out + '\n')
-            timeline.append(tweet._json)
-        outfile.close()
+        try:
+            new_tweets = []
+            for page in tweepy.Cursor(api.user_timeline, id=i, count = 200,tweet_mode="extended").pages(1):
+                new_tweets.extend(page)
+    #        new_tweets = api.user_timeline(id = user_id,count=200)
+            with gzip.open(directory + '/' + str(user_id) + '.json.gz', 'wt') as outfile:
+                for tweet in new_tweets:
+                    timeline.append(tweet)
+                    out = json.dumps(tweet._json)
+                    outfile.write(out + '\n')
+                    timeline.append(tweet._json)
+        except tweepy.TweepError as e:
+            print(e.reason)
+            continue
 
-        
-    if len(timeline) > 200:
-        timeline = timeline[:200]
     return(timeline)
         
         
@@ -781,8 +784,10 @@ def get_network_user_data(data, user_id):
              'network_mean_tweets_per_min' : [],#
              'network_mean_tweets_per_hour' : [],#
              'network_mean_tweets_per_day' : [],#
-             'network_mean_jaccard similarity' : [],#
-             'network_sleep_at_night' : []
+             'network_mean_jaccard_similarity' : [],#
+             'network_mean_cosine_similarity': [],
+             'network_sleep_at_night' : [],
+             'network_unpopAcct_popTeet': []
              }
     df = twitter_col.parse_twitter_list(data)
     df['date2'] = twitter_col.convert_dates(df['status_created_at'].tolist())
