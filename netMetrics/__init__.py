@@ -128,6 +128,7 @@ def dedupe_twitter(list_of_tweets):
 #%%
 def get_timeline(api, user_id, directory):
     import gzip, json, io
+    import tweepy
     files = check_directory(user_id, directory, kind = '.json')
     timeline = []
     if len(files) > 0:
