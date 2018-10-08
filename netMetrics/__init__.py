@@ -127,6 +127,10 @@ def dedupe_twitter(list_of_tweets):
     return(final)
 #%%
 def get_timeline(api, user_id, directory, pages = 1):
+    '''
+    Get timeline from user.  Use pages parameter to get up to last 3200 tweets
+    in increments of 200 (1 page gives 200, 2 pages gives 400, etc.)
+    '''
     import gzip, json, io
     import tweepy
     files = check_directory(user_id, directory, kind = '.json')
@@ -144,7 +148,6 @@ def get_timeline(api, user_id, directory, pages = 1):
             new_tweets = []
             for page in tweepy.Cursor(api.user_timeline, id=user_id, count = 200,tweet_mode="extended").pages(pages):
                 new_tweets.extend(page)
-    #        new_tweets = api.user_timeline(id = user_id,count=200)
             with gzip.open(directory + '/' + str(user_id) + '.json.gz', 'wt') as outfile:
                 for tweet in new_tweets:
                     timeline.append(tweet)
@@ -343,7 +346,9 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
     edge = twitter_col.get_edgelist_from_list(data, to_csv = False)
     if len(edge.index) > 3:
         metric_df = parse_all_metrics(api, edge, list_of_user_ids[0], directory)
-        metric_df.to_csv(file_prefix + 'network_features.csv', index = False)
+        content_df = get_network_user_data(data, list_of_user_ids[0])
+        final_df = pd.merge(metric_df, content_df, how = 'inner', on = 'user_id')
+        final_df.to_csv(file_prefix + 'network_features.csv', index = False)
     
     ## Loop through rest of IDs and append to CSV
     
@@ -354,7 +359,9 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
             edge = twitter_col.get_edgelist_from_list(data, to_csv = False)
             if len(edge.index) > 3:
                 metric_df = parse_all_metrics(api, edge, user, directory)
-                metric_df.to_csv(myFile, header=False, index = False)
+                content_df = get_network_user_data(data, user)
+                final_df = pd.merge(metric_df, content_df, how = 'inner', on = 'user_id')
+                final_df.to_csv(file_prefix + 'network_features.csv', index = False)
 #%%    
 def strip_all_entities(text):
     import re, string
@@ -769,7 +776,8 @@ def get_network_user_data(data, user_id):
     from scipy.spatial.distance import squareform, pdist
     from scipy import stats
     
-    final = {'network_fraction_default_image' : [],  #
+    final = {'user_id' : [], 
+            'network_fraction_default_image' : [],  #
              'network_median_followers' : [], #
              'network_median_friends' : [], #
              'network_number_of_languages': [], #
@@ -789,6 +797,8 @@ def get_network_user_data(data, user_id):
              'network_sleep_at_night' : [],
              'network_unpopAcct_popTeet': []
              }
+    
+    final['user_id'].append(user_id)
     df = twitter_col.parse_twitter_list(data)
     df['date2'] = twitter_col.convert_dates(df['status_created_at'].tolist())
     df['hour'] = df.date2.dt.strftime('%H')
@@ -807,32 +817,13 @@ def get_network_user_data(data, user_id):
     # sleep analysis 
     # see https://machinelearningmastery.com/time-series-data-stationary-python/
     # and http://www.statsmodels.org/dev/generated/statsmodels.tsa.stattools.adfuller.html
-    
-
-    from statsmodels.tsa.stattools import adfuller
-    X = df['date2'].resample('H').count().as_matrix()
-    X = df.groupby('id_str')['date2'].resample('D').count()
-    y = X.apply( my_adfuller)
-    result = adfuller(X)
-    p.value = result[1]
-    
-    final_result = []
-    people = list(set(df['id_str'].tolist()))
-    for person in people:
-        temp = df[df['id_str'] == person]
-        if len(temp.index) > 50:
-            X = temp.groupby('id_str')['date2'].resample('D').count()
-            result = adfuller(X)
-            p_value = result[1]
-            final_result.append(p_value)
-        else:
-            final_result.append(1)
-        
-    
-    timeOfDay = df['hour'].value_counts().as_matrix()
-    y1 = timeOfDay - min(timeOfDay)
-    z1 = timeOfDay/max(y1)
-    statistic,pvalue = stats.kstest(z1, 'uniform')
+    # I ended up using KS-test 
+    # To plot one of their historgrams, use:
+    # timeOfDay['428454668'].hist()
+     
+    timeOfDay = df.groupby('id_str')['hour'].value_counts()
+    test = timeOfDay.groupby('id_str').apply(ks_test_uniformity) 
+    final["network_sleep_at_night"].append(np.sum(test > 0.5)/len(test))        
     
     # Text data
     final['network_mean_num_emoji'].append(df['emoji'].mean())
@@ -841,7 +832,7 @@ def get_network_user_data(data, user_id):
     final['network_mean_hash'].append(df['hash'].mean())
     final['network_fraction_retweets'].append(sum(df['status_isretweet'] == True)/len(df.index))
     
-    # Jaccard Similarity
+    # Jaccard and Cosine Similarity
     if user_id in df['id_str'].tolist():
         text = df.groupby(['id_str'])['status_text'].apply(','.join).reset_index()
         text['status_text'] = text['status_text'].str.replace('http\S+|www.\S+', '', case=False)
@@ -853,29 +844,38 @@ def get_network_user_data(data, user_id):
         dist = pdist(text3, metric="jaccard")
         dist2 = squareform(dist)
         index = text3.index.get_loc(user_id)
-        final['network_mean_jaccard similarity'].append(np.mean(dist2[index,]))
+        final['network_mean_jaccard_similarity'].append(np.mean(dist2[index,]))
+        dist = pdist(text3, metric="cosine")
+        dist2 = squareform(dist)
+        dist2 = np.nan_to_num(dist2)
+        index = text3.index.get_loc(user_id)
+        final['network_mean_cosine_similarity'].append(np.mean(dist2[index,]))
     else:
-        final['network_mean_jaccard similarity'].append(1)
+        final['network_mean_jaccard_similarity'].append(1)
     
     
     # User Data
     df2 = df.drop_duplicates(subset = ['id_str'], keep = 'first')
-
-    df2['age'] = df['created_at'].apply(get_age)
+    df2 = df2.reset_index(drop = True)
+    df2['age'] = df2['created_at'].apply(get_age)
     
-    final['network_fraction_default_image'].append(sum(df2['has_default_profile'] == True)/len(df.index))
+    final['network_fraction_default_image'].append(sum(df2['has_default_profile'] == True)/len(df2.index))
     final['network_median_followers'].append(df2['followers_count'].median())
     final['network_median_friends'].append(df2['friends_count'].median())
     final['network_median_statuses'].append(df2['friends_count'].median())
 
+    df['max'] = df[['followers_count','friends_count']].astype(int).max(axis = 1)
+    df['pop_unpop'] = df['status_retweet_count'] > 2 * df['max']
+    final['network_unpopAcct_popTeet'].append(df['pop_unpop'].sum()/len(df.index))
 
-
-    final['network_fraction_with_description'].append(sum(df2['has_default_profile'] == True)/len(df.index))
+    final['network_fraction_with_description'].append(sum(df2['has_default_profile'] == True)/len(df2.index))
     
     final['network_mean_age'].append(df2['age'].mean())
     final['network_number_of_languages'].append(df2['lang'].value_counts().count())
     
-    return(final)
+    df = pd.DataFrame(final)
+    return(df)
+
     
     
 
@@ -1009,12 +1009,46 @@ z = y/max(y)
 stats.kstest(z, 'uniform')
 
 #%%
+
+#    from statsmodels.tsa.stattools import adfuller
+##    X = df['date2'].resample('H').count().as_matrix()
+#    X = df.groupby('id_str')['date2'].resample('D').count()
+#    y = X.groupby('id_str').apply( my_adfuller)
+#    y['stationary'] = y
+#    result = adfuller(X)
+#    p_value = result[1]
+#    
+#    final_result = []
+#    people = list(set(df['id_str'].tolist()))
+#    for person in people:
+#        temp = df[df['id_str'] == person]
+#        if len(temp.index) > 50:
+#            X = temp.groupby('id_str')['date2'].resample('D').count()
+#            result = adfuller(X)
+#            p_value = result[1]
+#            final_result.append(p_value)
+#        else:
+#            final_result.append(1)
 def my_adfuller(x):
     from statsmodels.tsa.stattools import adfuller
 #    vector = vector.as_matrix()
-    result = adfuller(x)
-    return(result[1])
-
+    try:
+        result = adfuller(x)
+        return(result[1])
+    except:
+        return(0.4)
+#%%
+#timeOfDay = df['hour'].value_counts().as_matrix()
+def ks_test_uniformity(timeOfDay):      
+    try:
+        y1 = timeOfDay - min(timeOfDay)
+        z1 = timeOfDay/max(y1)
+        statistic,pvalue = stats.kstest(z1, 'uniform')
+        return(pvalue)
+    except:
+        return(0.4)
+        
+        
 #%%
 #import netMetrics
 #d = netMetrics.get_user_data(api, '59220577','netMetric_timelines2',random_seed = 775)
