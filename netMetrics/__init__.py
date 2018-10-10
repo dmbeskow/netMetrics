@@ -171,8 +171,9 @@ def get_followers(api, user_id, directory):
         followers = followers[0].tolist()
     else:
         followers = api.followers_ids(id = user_id)
-        df = pd.DataFrame({'my_ids':followers}, dtype = str)
-        df.to_csv(directory + '/' + user_id + '_followers.csv',header = None, index = False)
+        if len(followers) > 0:
+            df = pd.DataFrame({'my_ids':followers}, dtype = str)
+            df.to_csv(directory + '/' + user_id + '_followers.csv',header = None, index = False)
     return(followers)
 #%%
 def get_friends(api, user_id, directory):
