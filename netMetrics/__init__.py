@@ -805,7 +805,7 @@ def get_network_user_data(data, user_id):
     final['user_id'].append(user_id)
     df = twitter_col.parse_twitter_list(data)
     df['date2'] = twitter_col.convert_dates(df['status_created_at'].tolist())
-    df['hour'] = df.date2.dt.strftime('%H')
+    df['hour'] = df.date2.dt.strftime('%H').astype(int)
     df.index = pd.DatetimeIndex(df.date2)
     df['hash'] = get_num_hash(data)
     df['mention'] = get_num_mention(data)
@@ -824,10 +824,10 @@ def get_network_user_data(data, user_id):
     # I ended up using KS-test 
     # To plot one of their historgrams, use:
     # timeOfDay['428454668'].hist()
-     
-    timeOfDay = df.groupby('id_str')['hour'].value_counts()
-    test = timeOfDay.groupby('id_str').apply(ks_test_uniformity) 
-    final["network_sleep_at_night"].append(np.sum(test > 0.5)/len(test))        
+
+    timeOfDay = df.groupby('id_str')['hour'].apply(ks_test_uniformity) 
+    
+    final["network_sleep_at_night"].append(np.sum(timeOfDay > 0.5)/len(timeOfDay))        
     
     # Text data
     final['network_mean_num_emoji'].append(df['emoji'].mean())
@@ -1115,7 +1115,7 @@ def ks_test_uniformity(timeOfDay):
 #import sys
 #import json
 #import os
-#
+
 ## Replace the API_KEY and API_SECRET with your application's key and secret.
 #auth = tweepy.AppAuthHandler("***REMOVED***", "***REMOVED***")
 #
