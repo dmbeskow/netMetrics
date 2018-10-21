@@ -818,7 +818,7 @@ def get_network_user_data(data, user_id, bot_model ):
              'network_mean_cosine_similarity': [],
              'network_sleep_at_night' : [],
              'network_unpopAcct_popTeet': [],
-             'network_bots': []
+             'network_bot_percentage': []
              }
     
     final['user_id'].append(user_id)
@@ -901,7 +901,7 @@ def get_network_user_data(data, user_id, bot_model ):
         for tweet in dedupe_users(data):
             outfile.write(json.dumps(tweet) + '\n')
     bots = classification.bot_classification('temp.json', model = bot_model)
-    final['bot_percentage'].append(sum(bots['prediction'])/len(bots.index))  
+    final['network_bot_percentage'].append(sum(bots['prediction'])/len(bots.index))  
     
     df = pd.DataFrame(final)
     return(df)
