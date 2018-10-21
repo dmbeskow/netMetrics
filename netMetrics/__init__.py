@@ -348,9 +348,9 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = False):
     
     
 #%%
-def get_metrics_listOfIDs(list_of_user_ids, api, directory, 
+def get_metrics_listOfIDs(list_of_user_ids, api, directory, bot_model,
                           file_prefix = 'twitter_network_metrics_',
-                          RS = None, bot_model):
+                          RS = None):
     import twitter_col
     import pandas as pd
     import progressbar
