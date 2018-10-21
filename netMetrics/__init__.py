@@ -350,7 +350,7 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = False):
 #%%
 def get_metrics_listOfIDs(list_of_user_ids, api, directory, 
                           file_prefix = 'twitter_network_metrics_',
-                          RS = None):
+                          RS = None, bot_model):
     import twitter_col
     import pandas as pd
     import progressbar
@@ -377,7 +377,7 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
             if len(edge.index) > 3:
                 try:
                     metric_df = parse_all_metrics(api, edge, user, directory)
-                    content_df = get_network_user_data(data, user)
+                    content_df = get_network_user_data(data, user, bot_model)
                     final_df = pd.merge(metric_df, content_df, how = 'inner', on = 'user_id')
                     final_df.to_csv(myFile, index = False, header = False)
                 except:
