@@ -108,10 +108,23 @@ def timeline_snowball(api, user_id, directory, random_seed = None):
                 continue
         
  
-#%%
+
     
-
-
+#%%   
+def dedupe_users(list_of_tweets):
+    seen = {}
+    final = []
+    for tweet in list_of_tweets:
+        try:
+            id = tweet['user']['id_str']
+            if id not in seen:
+                seen[id] = True
+                final.append(tweet)
+        except:
+            continue
+        
+    return(final)
+#%%
 def dedupe_twitter(list_of_tweets):
     seen = {}
     final = []
@@ -770,7 +783,7 @@ def word_triage_by_language(file, to_csv = False, languages = 'all'):
 
 
 #%%
-def get_network_user_data(data, user_id):
+def get_network_user_data(data, user_id, bot_model ):
     import pandas as pd
     from datetime import datetime, timezone
     import dateutil
@@ -779,6 +792,8 @@ def get_network_user_data(data, user_id):
     from sklearn.feature_extraction.text import CountVectorizer
     from scipy.spatial.distance import squareform, pdist
     from scipy import stats
+    from botHunter import classification
+    import json
     
     final = {'user_id' : [], 
             'network_fraction_default_image' : [],  #
@@ -799,7 +814,8 @@ def get_network_user_data(data, user_id):
              'network_mean_jaccard_similarity' : [],#
              'network_mean_cosine_similarity': [],
              'network_sleep_at_night' : [],
-             'network_unpopAcct_popTeet': []
+             'network_unpopAcct_popTeet': [],
+             'network_bots': []
              }
     
     final['user_id'].append(user_id)
@@ -876,6 +892,13 @@ def get_network_user_data(data, user_id):
     
     final['network_mean_age'].append(df2['age'].mean())
     final['network_number_of_languages'].append(df2['lang'].value_counts().count())
+    
+        # Get bots
+    with open('temp.json', 'w') as outfile:
+        for tweet in dedupe_users(data):
+            outfile.write(json.dumps(tweet) + '\n')
+    bots = classification.bot_classification('temp.json', model = bot_model)
+    final['bot_percentage'].append(sum(bots['prediction'])/len(bots.index))  
     
     df = pd.DataFrame(final)
     return(df)
