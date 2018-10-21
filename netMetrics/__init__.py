@@ -354,6 +354,9 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
     import twitter_col
     import pandas as pd
     import progressbar
+    import time
+    
+    myTime = time.strftime('%Y%m%d-%H%M%S')
     
     ## run one iteration and create CSV
     data = get_user_data(api, list_of_user_ids[0], directory, random_seed = RS)
@@ -362,13 +365,13 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
         metric_df = parse_all_metrics(api, edge, list_of_user_ids[0], directory)
         content_df = get_network_user_data(data, list_of_user_ids[0])
         final_df = pd.merge(metric_df, content_df, how = 'inner', on = 'user_id')
-        final_df.to_csv(file_prefix + 'network_features.csv', index = False)
+        final_df.to_csv(file_prefix + 'network_features' + myTime + '.csv', index = False)
     
     ## Loop through rest of IDs and append to CSV
     
-    with open(file_prefix + 'network_features.csv', 'a') as myFile:
+    with open(file_prefix + 'network_features' + myTime + '.csv', 'a') as myFile:
         bar = progressbar.ProgressBar()
-        for user in bar(list_of_user_ids[1:]):
+        for user in bar(list_of_user_ids):
             data = get_user_data(api, user, directory, random_seed = RS)
             edge = twitter_col.get_edgelist_from_list(data, to_csv = False)
             if len(edge.index) > 3:
@@ -376,7 +379,7 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory,
                     metric_df = parse_all_metrics(api, edge, user, directory)
                     content_df = get_network_user_data(data, user)
                     final_df = pd.merge(metric_df, content_df, how = 'inner', on = 'user_id')
-                    final_df.to_csv(myFile, index = False)
+                    final_df.to_csv(myFile, index = False, header = False)
                 except:
                     continue
 #%%    
