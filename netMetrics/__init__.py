@@ -363,7 +363,7 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory, bot_model,
     edge = twitter_col.get_edgelist_from_list(data, to_csv = False)
     if len(edge.index) > 3:
         metric_df = parse_all_metrics(api, edge, list_of_user_ids[0], directory)
-        content_df = get_network_user_data(data, list_of_user_ids[0])
+        content_df = get_network_user_data(data, list_of_user_ids[0], bot_model)
         final_df = pd.merge(metric_df, content_df, how = 'inner', on = 'user_id')
         final_df.to_csv(file_prefix + 'network_features' + myTime + '.csv', index = False)
     
@@ -371,7 +371,7 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory, bot_model,
     
     with open(file_prefix + 'network_features' + myTime + '.csv', 'a') as myFile:
         bar = progressbar.ProgressBar()
-        for user in bar(list_of_user_ids):
+        for user in bar(list_of_user_ids[1:]):
             data = get_user_data(api, user, directory, random_seed = RS)
             edge = twitter_col.get_edgelist_from_list(data, to_csv = False)
             if len(edge.index) > 3:
