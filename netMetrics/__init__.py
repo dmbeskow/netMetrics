@@ -5,9 +5,20 @@ Created on Thu Mar 29 10:13:11 2018
 @author: dmbes
 """
 
+
+import twitter_col
+import pandas as pd
+import time
+import progressbar
+import random
+import tweepy
+import networkx as nx
+import numpy as np
+import community
+#%%
+
 def graph_centrality(graph, kind = 'degree'):
-    import networkx as nx
-    import numpy as np
+
     if kind == 'degree':
         d = list(dict(graph.degree).values())
     if kind == 'betweenness':
@@ -63,9 +74,7 @@ def get_simmelian_ties(graph, sparse = False):
     
     
 def get_user_data(api, user_id, directory, random_seed = None):
-    import progressbar
-    import random
-    import tweepy
+
     tweets = []
     try:
         tweets.extend(get_timeline(api, user_id, directory))
@@ -75,9 +84,8 @@ def get_user_data(api, user_id, directory, random_seed = None):
         print(e)
         return([])
     random.seed(a=random_seed)
-    bar = progressbar.ProgressBar()
     if len(frd ) > 0:
-        for f in bar(random.sample(frd, min(len(frd),250))):
+        for f in random.sample(frd, min(len(frd),250)):
             try:
                 tweets.extend(get_timeline(api, f, directory))
             except:
@@ -351,10 +359,7 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = False):
 def get_metrics_listOfIDs(list_of_user_ids, api, directory, bot_model,
                           file_prefix = 'twitter_network_metrics_',
                           RS = None):
-    import twitter_col
-    import pandas as pd
-    import progressbar
-    import time
+
     
     myTime = time.strftime('%Y%m%d-%H%M%S')
     
@@ -888,7 +893,7 @@ def get_network_user_data(data, user_id, bot_model ):
     final['network_median_statuses'].append(df2['friends_count'].median())
 
     df['max'] = df[['followers_count','friends_count']].astype(int).max(axis = 1)
-    df['pop_unpop'] = df['status_retweet_count'] > 2 * df['max']
+    df['pop_unpop'] = df['status_retweet_count'].astype(int) > 2 * df['max'].astype(int)
     final['network_unpopAcct_popTeet'].append(df['pop_unpop'].sum()/len(df.index))
 
     final['network_fraction_with_description'].append(sum(df2['has_default_profile'] == True)/len(df2.index))
@@ -980,9 +985,9 @@ def check_tweet(Tweet):
     if 'status' in Tweet.keys():
         temp = Tweet['status']
         getRid = Tweet.pop('status', 'Entry not found')
-        temp['user'] = tweet
-        tweet = temp
-        return(tweet)
+        temp['user'] = Tweet
+        Tweet = temp
+        return(Tweet)
 #%%    
 def get_num_hash(tweets):
     """
@@ -1029,14 +1034,14 @@ def get_age(date):
     td = datetime.now(timezone.utc) - dateutil.parser.parse(date)
     return(td.days)
 #%%
-from scipy import stats
-import numpy as np
-
-x = np.random.normal(size = 50, loc = 30, scale = 3)
-#x = np.random.uniform(size = 24, low = 25, high = 30)
-y = x - min(x)
-z = y/max(y)
-stats.kstest(z, 'uniform')
+#from scipy import stats
+#import numpy as np
+#
+#x = np.random.normal(size = 50, loc = 30, scale = 3)
+##x = np.random.uniform(size = 24, low = 25, high = 30)
+#y = x - min(x)
+#z = y/max(y)
+#stats.kstest(z, 'uniform')
 
 #%%
 
@@ -1069,7 +1074,8 @@ def my_adfuller(x):
         return(0.4)
 #%%
 #timeOfDay = df['hour'].value_counts().as_matrix()
-def ks_test_uniformity(timeOfDay):      
+def ks_test_uniformity(timeOfDay):  
+    from scipy import stats    
     try:
         y1 = timeOfDay - min(timeOfDay)
         z1 = timeOfDay/max(y1)
