@@ -882,6 +882,7 @@ def get_network_user_data(data, user_id, bot_model ):
         final['network_mean_cosine_similarity'].append(np.mean(dist2[index,]))
     else:
         final['network_mean_jaccard_similarity'].append(1)
+        final['network_mean_cosine_similarity'].append(1)
     
     
     # User Data
@@ -895,7 +896,7 @@ def get_network_user_data(data, user_id, bot_model ):
     final['network_median_statuses'].append(df2['friends_count'].median())
 
     df['max'] = df[['followers_count','friends_count']].astype(int).max(axis = 1)
-    df['pop_unpop'] = df['status_retweet_count'].astype(int) > 2 * df['max'].astype(int)
+    df['pop_unpop'] = df['status_retweet_count'].astype(int) > 2 * df['max'].astype(float)
     final['network_unpopAcct_popTeet'].append(df['pop_unpop'].sum()/len(df.index))
 
     final['network_fraction_with_description'].append(sum(df2['has_default_profile'] == True)/len(df2.index))
