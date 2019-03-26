@@ -382,13 +382,13 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory, bot_model,
             data = get_user_data(api, user, directory, random_seed = RS)
             edge = twitter_col.get_edgelist_from_list(data, to_csv = False)
             if len(edge.index) > 3:
-                try:
-                    metric_df = parse_all_metrics(api, edge, user, directory)
-                    content_df = get_network_user_data(data, user, bot_model)
-                    final_df = pd.merge(metric_df, content_df, how = 'inner', on = 'user_id')
-                    final_df.to_csv(myFile, index = False, header = False)
-                except:
-                    continue
+#                try:
+                metric_df = parse_all_metrics(api, edge, user, directory)
+                content_df = get_network_user_data(data, user, bot_model)
+                final_df = pd.merge(metric_df, content_df, how = 'inner', on = 'user_id')
+                final_df.to_csv(myFile, index = False, header = False)
+#                except:
+#                    continue
 #%%    
 def strip_all_entities(text):
     import re, string
