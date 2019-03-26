@@ -364,7 +364,9 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory, bot_model,
     myTime = time.strftime('%Y%m%d-%H%M%S')
     
     ## run one iteration and create CSV
+    print('Getting Data for ',list_of_user_ids[0])
     data = get_user_data(api, list_of_user_ids[0], directory, random_seed = RS)
+    print('Building features...')
     edge = twitter_col.get_edgelist_from_list(data, to_csv = False)
     if len(edge.index) > 3:
         metric_df = parse_all_metrics(api, edge, list_of_user_ids[0], directory)
