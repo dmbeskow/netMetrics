@@ -177,7 +177,9 @@ def get_timeline(api, user_id, directory, pages = 1):
                     timeline.append(tweet._json)
         except tweepy.TweepError as e:
             print(e.reason)
-
+    timeline2 = []
+    for t in timeline:
+        timeline2.append(t._json)
     return(timeline)
         
         
