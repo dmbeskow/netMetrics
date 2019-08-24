@@ -180,7 +180,7 @@ def get_timeline(api, user_id, directory, pages = 1):
     timeline2 = []
     for t in timeline:
         timeline2.append(t._json)
-    return(timeline)
+    return(timeline2)
         
         
     
