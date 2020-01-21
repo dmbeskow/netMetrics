@@ -5,7 +5,6 @@ Created on Thu Mar 29 10:13:11 2018
 @author: dmbes
 """
 
-
 import twitter_col
 import pandas as pd
 import time
