@@ -1126,6 +1126,7 @@ def ks_test_uniformity(timeOfDay):
 #%%
 
 
+<<<<<<< HEAD
 
 
 
@@ -1152,6 +1153,34 @@ def ks_test_uniformity(timeOfDay):
 #import os
 
 
+=======
+
+
+
+
+#import networkx as nx
+#G=nx.gnp_random_graph(100, 0.4, seed=None, directed=True)
+#
+#d = nx.triadic_census(H)
+#
+#H = nx.gnp_random_graph(4, 0.4, seed=None, directed=True)
+#
+#d = dict(G.degree).values()
+#
+#partition = community.best_partition(G.to_undirected())
+#
+#ef = nx.effective_size(G, nodes = [user_id])
+#df = parse_all_metrics(G, user_id = 50, directory = None)
+#
+##%%
+#import tweepy
+#import time
+#import sys
+#import json
+#import os
+
+##%%
+>>>>>>> b3a41cca1f2380c7d0554ec1c1957a9f74b8c1b8
 #import netMetrics
 #test = get_user_data(api, '113142532', 'cav_timelines')
 #import twitter_col
