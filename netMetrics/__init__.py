@@ -501,6 +501,20 @@ def strip_all_entities(text):
     return ' '.join(words)
 #%%
 def network_triage(file, to_csv = False, languages = 'all'):
+    ''' Finds top 10 Words and Hashtags by Louvain Group
+    
+
+    Parameters
+    ----------
+    file : path to file
+    to_csv : Whether to write results to disk. The default is False.
+    languages : Which language to use for stopwords.  The default is 'all'.
+
+    Returns
+    -------
+    2 Pandas Dataframes: 1 Top Words and 1 for Top Hashtags
+
+    '''
     from nltk.tokenize import word_tokenize
     from nltk.corpus import stopwords
     import twitter_col
@@ -633,6 +647,20 @@ def network_triage(file, to_csv = False, languages = 'all'):
 
 #%%
 def word_triage_by_language(file, to_csv = False, languages = 'all'):
+    ''' Find top words and hashtags by language
+    
+
+    Parameters
+    ----------
+    file : path to file
+    to_csv : Whether to write to disk.  The default is False.
+    languages : Languages for stopwords.  The default is 'all'.
+
+    Returns
+    -------
+    2 Pandas Dataframes: 1 Top Words and 1 for Top Hashtags
+
+    '''
     from nltk.tokenize import word_tokenize
     from nltk.corpus import stopwords
     import twitter_col
@@ -763,6 +791,20 @@ def word_triage_by_language(file, to_csv = False, languages = 'all'):
 
 #%%
 def get_network_user_data(data, user_id, bot_model ):
+    ''' Get Tier2 metrics for a user
+    
+
+    Parameters
+    ----------
+    data : list of twitter data
+    user_id : user_id (string)
+    bot_model : Model to use for Bot-Hunter Tier 1 detection
+
+    Returns
+    -------
+    Pandas data frame of features
+
+    '''
     import pandas as pd
     from datetime import datetime, timezone
     import dateutil
@@ -884,9 +926,162 @@ def get_network_user_data(data, user_id, bot_model ):
     return(df)
 
 
+#%%
+def check_tweet(Tweet):
+    '''
+    Flips users to tweet format and checks to make sure there's a status object.
+    If no status object, added an empty status object.
+    
+    '''
+    import twitter_col
+    if 'status' not in Tweet.keys():
+        if 'friends_count' in Tweet.keys():
+            Tweet['status'] = twitter_col.get_empty_status()
+    if 'status' in Tweet.keys():
+        temp = Tweet['status']
+        getRid = Tweet.pop('status', 'Entry not found')
+        temp['user'] = Tweet
+        Tweet = temp
+        return(Tweet)
+#%%
+def get_num_hash(tweets):
+    """
+    Returns number of hashtags in a tweet.  If no hashtags,
+    it returns an empty list.
+
+    """
+    final = []
+    for tweet in tweets:
+        ht = []
+        for h in tweet['entities']['hashtags']:
+                ht.append(h['text'])
+        final.append(len(ht))
+    return(final)
 
 
+#%%
+def get_num_mention(tweets):
+    """
+    Returns number of mentions in a tweet.  If no hashtags,
+    it returns an empty list.
+    """
+    final = []
+    for tweet in tweets:
+        men = []
+        if len(tweet['entities']['user_mentions']) > 0:
+            for m in tweet['entities']['user_mentions']:
+                men.append(m['id_str'])
+        final.append(len(men))
+    return(final)
+#%%
+def get_num_emoji(string):
+    """
+   Returns number of emojis
 
+    """
+    import emoji
+    E = [c for c in string if c in emoji.UNICODE_EMOJI]
+    return(len(E))
+#%%
+def get_age(date):
+    '''
+    Return age of past date.
+
+    '''
+    from datetime import datetime, timezone
+    import dateutil
+    td = datetime.now(timezone.utc) - dateutil.parser.parse(date)
+    return(td.days)
+#%%
+def my_adfuller(x):
+    '''
+    Returns adfuller metric
+
+    '''
+    from statsmodels.tsa.stattools import adfuller
+#    vector = vector.as_matrix()
+    try:
+        result = adfuller(x)
+        return(result[1])
+    except:
+        return(0.4)
+#%%
+#timeOfDay = df['hour'].value_counts().as_matrix()
+def ks_test_uniformity(timeOfDay):
+    '''
+    Conducts KS-test for uniformity
+
+    '''
+    from scipy import stats
+    try:
+        y1 = timeOfDay - min(timeOfDay)
+        z1 = timeOfDay/max(y1)
+        statistic,pvalue = stats.kstest(z1, 'uniform')
+        return(pvalue)
+    except:
+        return(0.4)
+
+
+#%%
+#import netMetrics
+#d = netMetrics.get_user_data(api, '59220577','netMetric_timelines2',random_seed = 775)
+##%%
+### Jaccard similarity
+#df2 = df.groupby(['id_str'])['status_text'].apply(','.join).reset_index()
+#df2['status_text'] = df2['status_text'].str.replace('http\S+|www.\S+', '', case=False)
+#import pandas as pd
+#from sklearn.feature_extraction.text import CountVectorizer
+#from scipy.spatial.distance import squareform, pdist
+##docs = ['why hello there', 'omg hello pony', 'she went there? omg']
+#docs = df2['status_text'].tolist()
+#vec = CountVectorizer()
+#X = vec.fit_transform(docs)
+#df3 = pd.DataFrame(X.toarray(), columns=vec.get_feature_names())
+#df3.index = df2['id_str']
+#dist = pdist(df3, metric="jaccard")
+#dist2 = squareform(dist)
+#
+#df3.index.get_loc('59220577')
+##%%
+#import json, io, gzip
+#tweets = []
+#with io.TextIOWrapper(gzip.open('nato_bot_all_20180222.json.gz', 'r')) as infile:
+#    for line in infile:
+#        if line != '\n':
+#            tweets.append(json.loads(line))
+
+
+#%%
+#from scipy import stats
+#import numpy as np
+#
+#x = np.random.normal(size = 50, loc = 30, scale = 3)
+##x = np.random.uniform(size = 24, low = 25, high = 30)
+#y = x - min(x)
+#z = y/max(y)
+#stats.kstest(z, 'uniform')
+
+#%%
+
+#    from statsmodels.tsa.stattools import adfuller
+##    X = df['date2'].resample('H').count().as_matrix()
+#    X = df.groupby('id_str')['date2'].resample('D').count()
+#    y = X.groupby('id_str').apply( my_adfuller)
+#    y['stationary'] = y
+#    result = adfuller(X)
+#    p_value = result[1]
+#
+#    final_result = []
+#    people = list(set(df['id_str'].tolist()))
+#    for person in people:
+#        temp = df[df['id_str'] == person]
+#        if len(temp.index) > 50:
+#            X = temp.groupby('id_str')['date2'].resample('D').count()
+#            result = adfuller(X)
+#            p_value = result[1]
+#            final_result.append(p_value)
+#        else:
+#            final_result.append(1)
 
 #%%
 #def parse_twitter_list(List):
@@ -948,156 +1143,10 @@ def get_network_user_data(data, user_id, bot_model ):
 #    df = pd.DataFrame(data, dtype = str)
 #
 #    return(df)
-#%%
-def check_tweet(Tweet):
-    import twitter_col
-    if 'status' not in Tweet.keys():
-        if 'friends_count' in Tweet.keys():
-            Tweet['status'] = twitter_col.get_empty_status()
-    if 'status' in Tweet.keys():
-        temp = Tweet['status']
-        getRid = Tweet.pop('status', 'Entry not found')
-        temp['user'] = Tweet
-        Tweet = temp
-        return(Tweet)
-#%%
-def get_num_hash(tweets):
-    """
-    Returns number of hashtags in a tweet.  If no hashtags,
-    it returns an empty list.
-
-    """
-    final = []
-    for tweet in tweets:
-        ht = []
-        for h in tweet['entities']['hashtags']:
-                ht.append(h['text'])
-        final.append(len(ht))
-    return(final)
-
-
-#%%
-def get_num_mention(tweets):
-    """
-    Returns number of mentions in a tweet.  If no hashtags,
-    it returns an empty list.
-    """
-    final = []
-    for tweet in tweets:
-        men = []
-        if len(tweet['entities']['user_mentions']) > 0:
-            for m in tweet['entities']['user_mentions']:
-                men.append(m['id_str'])
-        final.append(len(men))
-    return(final)
-#%%
-def get_num_emoji(string):
-    """
-   Returns number of emojis
-
-    """
-    import emoji
-    E = [c for c in string if c in emoji.UNICODE_EMOJI]
-    return(len(E))
-#%%
-def get_age(date):
-    from datetime import datetime, timezone
-    import dateutil
-    td = datetime.now(timezone.utc) - dateutil.parser.parse(date)
-    return(td.days)
-#%%
-#from scipy import stats
-#import numpy as np
-#
-#x = np.random.normal(size = 50, loc = 30, scale = 3)
-##x = np.random.uniform(size = 24, low = 25, high = 30)
-#y = x - min(x)
-#z = y/max(y)
-#stats.kstest(z, 'uniform')
-
-#%%
-
-#    from statsmodels.tsa.stattools import adfuller
-##    X = df['date2'].resample('H').count().as_matrix()
-#    X = df.groupby('id_str')['date2'].resample('D').count()
-#    y = X.groupby('id_str').apply( my_adfuller)
-#    y['stationary'] = y
-#    result = adfuller(X)
-#    p_value = result[1]
-#
-#    final_result = []
-#    people = list(set(df['id_str'].tolist()))
-#    for person in people:
-#        temp = df[df['id_str'] == person]
-#        if len(temp.index) > 50:
-#            X = temp.groupby('id_str')['date2'].resample('D').count()
-#            result = adfuller(X)
-#            p_value = result[1]
-#            final_result.append(p_value)
-#        else:
-#            final_result.append(1)
-def my_adfuller(x):
-    from statsmodels.tsa.stattools import adfuller
-#    vector = vector.as_matrix()
-    try:
-        result = adfuller(x)
-        return(result[1])
-    except:
-        return(0.4)
-#%%
-#timeOfDay = df['hour'].value_counts().as_matrix()
-def ks_test_uniformity(timeOfDay):
-    from scipy import stats
-    try:
-        y1 = timeOfDay - min(timeOfDay)
-        z1 = timeOfDay/max(y1)
-        statistic,pvalue = stats.kstest(z1, 'uniform')
-        return(pvalue)
-    except:
-        return(0.4)
-
-
-#%%
-#import netMetrics
-#d = netMetrics.get_user_data(api, '59220577','netMetric_timelines2',random_seed = 775)
-##%%
-### Jaccard similarity
-#df2 = df.groupby(['id_str'])['status_text'].apply(','.join).reset_index()
-#df2['status_text'] = df2['status_text'].str.replace('http\S+|www.\S+', '', case=False)
-#import pandas as pd
-#from sklearn.feature_extraction.text import CountVectorizer
-#from scipy.spatial.distance import squareform, pdist
-##docs = ['why hello there', 'omg hello pony', 'she went there? omg']
-#docs = df2['status_text'].tolist()
-#vec = CountVectorizer()
-#X = vec.fit_transform(docs)
-#df3 = pd.DataFrame(X.toarray(), columns=vec.get_feature_names())
-#df3.index = df2['id_str']
-#dist = pdist(df3, metric="jaccard")
-#dist2 = squareform(dist)
-#
-#df3.index.get_loc('59220577')
-##%%
-#import json, io, gzip
-#tweets = []
-#with io.TextIOWrapper(gzip.open('nato_bot_all_20180222.json.gz', 'r')) as infile:
-#    for line in infile:
-#        if line != '\n':
-#            tweets.append(json.loads(line))
-
-
-
-
-
 
 
 
 #%%
-
-
-<<<<<<< HEAD
-
-
 
 
 #import networkx as nx
@@ -1120,10 +1169,6 @@ def ks_test_uniformity(timeOfDay):
 #import sys
 #import json
 #import os
-
-
-=======
-
 
 
 
@@ -1149,7 +1194,6 @@ def ks_test_uniformity(timeOfDay):
 #import os
 
 ##%%
->>>>>>> b3a41cca1f2380c7d0554ec1c1957a9f74b8c1b8
 #import netMetrics
 #test = get_user_data(api, '113142532', 'cav_timelines')
 #import twitter_col
