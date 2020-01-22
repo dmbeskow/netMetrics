@@ -17,6 +17,19 @@ import community
 #%%
 
 def graph_centrality(graph, kind = 'degree'):
+    '''
+
+    Parameters
+    ----------
+    graph : neworkx graph
+    kind : 'degree' or 'betweenness'
+        DThe default is 'degree'.
+
+    Returns
+    -------
+    Graph Centrality
+
+    '''
 
     if kind == 'degree':
         d = list(dict(graph.degree).values())
@@ -73,6 +86,22 @@ def get_simmelian_ties(graph, sparse = False):
 
 
 def get_user_data(api, user_id, directory, random_seed = None):
+    '''
+    Gets all required tier3 data for a given user
+
+    Parameters
+    ----------
+    api : Tweepy API hook
+    user_id : string of user ID
+    directory : Location to save/look for data
+    random_seed : seed for keeping same sample for followers
+        DESCRIPTION. The default is None.
+
+    Returns
+    -------
+    None.
+
+    '''
 
     tweets = []
     try:
@@ -95,6 +124,10 @@ def get_user_data(api, user_id, directory, random_seed = None):
 
 
 def timeline_snowball(api, user_id, directory, random_seed = None):
+    '''
+    Gets timeline for user and user followers (up to 250...more than 250, samples 250 from last 5000)
+
+    '''
     import progressbar
     import random
     import tweepy
@@ -118,10 +151,22 @@ def timeline_snowball(api, user_id, directory, random_seed = None):
 
 
 #%%
-def dedupe_users(list_of_tweets):
+def dedupe_users(list_of_users):
+    '''
+    Dedupes list of users
+
+    Parameters
+    ----------
+    list_of_users : List of Tweets
+
+    Returns
+    -------
+    Deduped list of users
+
+    '''
     seen = {}
     final = []
-    for tweet in list_of_tweets:
+    for tweet in list_of_users:
         try:
             id = tweet['user']['id_str']
             if id not in seen:
@@ -133,6 +178,18 @@ def dedupe_users(list_of_tweets):
     return(final)
 #%%
 def dedupe_twitter(list_of_tweets):
+    '''
+    Dedupe list of Tweets
+
+    Parameters
+    ----------
+    list_of_tweets : List of tweet dictionaries
+
+    Returns
+    -------
+    List of Deduped Tweets
+
+    '''
     seen = {}
     final = []
     for tweet in list_of_tweets:
@@ -183,6 +240,10 @@ def get_timeline(api, user_id, directory, pages = 1):
 
 #%%
 def get_followers(api, user_id, directory):
+    '''
+    Get Followers (Will check to make sure we haven't already)
+
+    '''
     import pandas as pd
     files = check_directory(user_id, directory, kind = '_followers.csv')
     if len(files) > 0:
@@ -197,6 +258,10 @@ def get_followers(api, user_id, directory):
     return(followers)
 #%%
 def get_friends(api, user_id, directory):
+    '''
+      Get Followers (Will check to make sure we haven't already)
+
+    '''
     import pandas as pd
     files = check_directory(user_id, directory, kind = '_friends.csv')
     if len(files) > 0:
@@ -212,6 +277,23 @@ def get_friends(api, user_id, directory):
 #%%%
 
 def parse_all_metrics(api, edge_df, user_id, directory=None, long = False):
+    '''
+    Will get all Tier 3 metrics for a user_id
+
+    Parameters
+    ----------
+    api : Tweepy API hook
+    edge_df : Edgelist of Pandas DataFrame
+    user_id : User ID string
+    directory : Directory to look for data
+        The default is None.
+    long : Whether to get metrics that take a long time. The default is False.
+
+    Returns
+    -------
+    Feature Data Frame
+
+    '''
     import pandas as pd
     import twitter_col
     import json, io, gzip, os
@@ -358,6 +440,9 @@ def parse_all_metrics(api, edge_df, user_id, directory=None, long = False):
 def get_metrics_listOfIDs(list_of_user_ids, api, directory, bot_model,
                           file_prefix = 'twitter_network_metrics_',
                           RS = None):
+    '''
+    Get metrics for list of IDS
+    '''
 
 
     myTime = time.strftime('%Y%m%d-%H%M%S')
@@ -390,6 +475,18 @@ def get_metrics_listOfIDs(list_of_user_ids, api, directory, bot_model,
 #                    continue
 #%%
 def strip_all_entities(text):
+    '''Replaces punctuation and strips out hashtags and mentions
+    
+
+    Parameters
+    ----------
+    text (string): text string
+
+    Returns
+    -------
+    string: The input with punctuation replaced and hashtags and mentions removed
+
+    '''
     import re, string
     entity_prefixes = ['@','#']
     for separator in  string.punctuation:
@@ -533,134 +630,7 @@ def network_triage(file, to_csv = False, languages = 'all'):
     else:
         return(words_df, hash_df)
 
-#%%
-def network_triage_snowball(file, to_csv = False, languages = 'all'):
-    from nltk.tokenize import word_tokenize
-    from nltk.corpus import stopwords
-    import twitter_col
-    import pandas as pd
-    import progressbar
-    import networkx as nx
-    import community
-    import string
-    import nltk
-    import json
-    import urllib.request
-    import re
 
-
-    final_hash = {'hash_count': []}
-    final_words = {'tweet_count': []}
-
-    link = "https://raw.githubusercontent.com/dmbeskow/stop-words/master/stopwords-all.json"
-    with urllib.request.urlopen(link) as url:
-        stop_dict = json.loads(url.read().decode())
-
-    stop_words = stopwords.words('english')
-
-#    ukrain_stop_words = pd.read_csv('/Users/dbeskow/Dropbox/CMU/bot_classification/botApp/ukrainian-stopwords.txt',header = None)
-#    ukrain_stop_words = pd.read_csv('/usr0/home/dbeskow/Dropbox/CMU/bot_classification/botApp/ukrainian-stopwords.txt',header = None)
-#    stop_words.extend(ukrain_stop_words[0].tolist())
-    if languages == 'all':
-        for key in stop_dict:
-            stop_words.extend(stop_dict[key])
-    else:
-        for item in languages:
-            if item in stop_dict:
-                stop_words.extend(stop_dict[item])
-    stop_words.extend(string.punctuation)
-    stop_words.extend(['rt', '@', '#', 'http', 'https', '!', '?', '(', ')','`', '’','``'])
-
-    edge_df = twitter_col.get_edgelist_file(file, to_csv = False)
-    data = twitter_col.parse_twitter_json(file, to_csv = False)
-    hashtags = twitter_col.extract_hashtags(file, to_csv = False)
-    hashtags['user'] = hashtags['user'].astype(str)
-
-    text_dict = {}
-    for key, s in data.groupby('id_str')['status_text']:
-        text_dict[key] = list(s)
-
-    hash_dict = {}
-    for key, s in hashtags.groupby('user')['hashtag']:
-        hash_dict[key] = list(s)
-
-
-    G=nx.from_pandas_edgelist(edge_df, 'from', 'to', edge_attr=['type','status_id', 'created_at'])
-    partition = community.best_partition(G)
-    p_df = pd.DataFrame.from_dict(partition, orient = 'index')
-    table = p_df[0].value_counts()
-
-    myMax = min(10,len(table.index))
-
-    table = table.nlargest(myMax)
-
-    groups = list(table.index)
-    bar = progressbar.ProgressBar()
-    for group in bar(groups):
-        tweets = []
-        Hash = []
-        temp = p_df[p_df[0] == group]
-        users = list(set(temp.index))
-        bar2 = progressbar.ProgressBar()
-
-        for u in bar2(users):
-            if u in text_dict:
-                tweets.extend(text_dict[u])
-            if u in hash_dict:
-                Hash.extend(hash_dict[u])
-
-        tweets = list(map(lambda item: item.lower(), tweets))
-        tweets = list(map(lambda item: strip_all_entities(item),tweets))
-        tokenized_tweets = [word_tokenize(i) for i in tweets]
-        words = [item for sublist in tokenized_tweets for item in sublist if item not in stop_words]
-#        words = [item for sublist in tokenized_tweets for item in sublist]
-        regex = re.compile('#(\w+)')
-        words = [x for x in words if not regex.match(x)]
-        regex = re.compile('@(\w+)')
-        words = [x for x in words if not regex.match(x)]
-        allWordDist = nltk.FreqDist(w.lower() for w in words)
-        common_words = allWordDist.most_common(10)
-        common_words = [x[0] for x in common_words]
-
-        allWordDist = nltk.FreqDist(w.lower() for w in Hash)
-        common_hash = allWordDist.most_common(10)
-        common_hash = [x[0] for x in common_hash]
-
-        final_words['tweet_count'].append(len(tweets))
-        final_hash['hash_count'].append(len(Hash))
-
-        final_words[group] = common_words
-        final_hash[group] = common_hash
-
-    t_count = final_words.pop('tweet_count')
-    words_df = pd.DataFrame(final_words)
-    words_df = words_df.transpose()
-    words_df =  pd.merge(words_df,table.to_frame('node_count'), left_index = True, right_index = True)
-    nc = words_df['node_count']
-    words_df = words_df.drop('node_count', axis = 1)
-    words_df.insert(0, 'node_count', nc)
-    words_df.insert(0, 'tweet_count', t_count)
-    words_df.insert(0, 'group', words_df.index)
-
-
-    for key in final_hash:
-        while len(final_hash[key]) < 10:
-            final_hash[key].append(None)
-    h_count = final_hash.pop('hash_count')
-    hash_df = pd.DataFrame(final_hash)
-    hash_df = hash_df.transpose()
-    hash_df = pd.merge(hash_df,table.to_frame('node_count'), left_index = True, right_index = True)
-    nc = hash_df['node_count']
-    hash_df = hash_df.drop('node_count', axis = 1)
-    hash_df.insert(0, 'node_count', nc)
-    hash_df.insert(0, 'hash_count', h_count)
-    hash_df.insert(0, 'group', hash_df.index)
-
-    if to_csv:
-        words_df.to_csv('wordTriage_' + file + '.csv',index = False)
-        hash_df.to_csv('hashTriage_' + file + '.csv', index = False)
-    else:
-        return(words_df, hash_df)
 #%%
 def word_triage_by_language(file, to_csv = False, languages = 'all'):
     from nltk.tokenize import word_tokenize
