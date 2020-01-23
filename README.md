@@ -14,8 +14,10 @@ The methods scrape and extract features for large ego-networks around a target a
 pip install --user --upgrade git+git://github.com/dmbeskow/netMetrics.git
 ```
 
-### Examples
+### `netMetric` feature extraction
 
 Still in development...
 
-## Network and Content Exploratory Data Analysis
+## Network and Content Exploratory Data Analysis or *triage*
+
+There are two functions in the netMetrics package that are
