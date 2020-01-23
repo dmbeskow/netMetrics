@@ -20,4 +20,21 @@ Still in development...
 
 ## Network and Content Exploratory Data Analysis or *triage*
 
-There are two functions in the netMetrics package that are
+There are two functions in the netMetrics package that are designed to help *triage* a conversation.  In other words, they're designed to help the analyst determine what kind of topics are in communities or groups.  
+
+The first function is able to take a Twitter stream saved into a JSON file, create a conversational network (links = mention, retweet, reply), compute the communities or goups in this network with Louvaine clustering algorithm, and then identify top words and hashtags for each louvaine community.  
+
+The use of this code is illustrated below:
+
+```python
+from netMetrics import triage
+words_df, hash_df = triage.network_triage('tweets.json.gz', to_csv = False, languages = 'en')
+
+```
+
+This can similarly be done for languages as follows:
+
+```python
+from netMetrics import triage
+words_df, hash_df = triage.word_triage_by_language('tweets.json.gz', to_csv = False, languages = 'en')
+```
