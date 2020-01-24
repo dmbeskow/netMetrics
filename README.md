@@ -1,4 +1,4 @@
-## netMetrics: Automate network based feature extraction
+# netMetrics: Automate network based feature extraction
 
 This package was primarily designed to extract Bot-Hunter Tier 3 Features from Twitter Data.  These methods are introduced in
 
@@ -8,15 +8,42 @@ The methods scrape and extract features for large ego-networks around a target a
 
 
 
-### Installation
+## Installation
 
 ```bash
 pip install --user --upgrade git+git://github.com/dmbeskow/netMetrics.git
 ```
 
-### `netMetric` feature extraction
 
-Still in development...
+## Tier 3 feature extraction
+
+The netMetrics will create features based on a list of user ids.  In order to expedite, make sure your list does not contain duplicates.  
+
+In order to get Tier 3 features for a list of Twitter user ID's, use the following syntax:
+
+```python
+import twitter_col
+import tweepy
+import netMetrics
+from pathlib import Path
+
+# Replace the API_KEY and API_SECRET with your application's key and secret.
+auth = tweepy.AppAuthHandler( keys['consumer_key'], keys['consumer_secret'])
+
+api = tweepy.API(auth, wait_on_rate_limit=True,
+                                   wait_on_rate_limit_notify=True)
+
+if (not api):
+    print ("Can't Authenticate")
+    sys.exit(-1)
+
+# Get metrics.  Will create and append to CSV
+my_ids = # your list of user ids
+bot_model = 'path/to/bot_model.pkl'
+get_metrics_listOfIDs(list_of_user_ids, api, directory = 'timelines', bot_model,
+                          file_prefix = 'twitter_network_metrics_',
+                          RS = 777):
+```
 
 ## Network and Content Exploratory Data Analysis or *triage*
 
