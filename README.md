@@ -38,3 +38,11 @@ This can similarly be done for languages as follows:
 from netMetrics import triage
 words_df, hash_df = triage.word_triage_by_language('tweets.json.gz', to_csv = False, languages = 'en')
 ```
+
+The `triage` module will require `nltk`.  Additionally, if you haven't done so, you will need to run the following code:
+
+```python
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt')
+```
